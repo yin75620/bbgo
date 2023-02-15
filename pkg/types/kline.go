@@ -181,11 +181,7 @@ func (k *KLine) GetThickness() fixedpoint.Value {
 }
 
 func (k *KLine) GetUpperShadowRatio() fixedpoint.Value {
-	out := k.GetUpperShadowHeight().Div(k.GetMaxChange())
-	if out.Sign() < 0 {
-		return out.Neg()
-	}
-	return out
+	return k.getRatioOfMax(k.GetUpperShadowHeight())
 }
 
 func (k *KLine) GetUpperShadowHeight() fixedpoint.Value {
@@ -199,11 +195,7 @@ func (k *KLine) GetUpperShadowHeight() fixedpoint.Value {
 }
 
 func (k *KLine) GetLowerShadowRatio() fixedpoint.Value {
-	out := k.GetLowerShadowHeight().Div(k.GetMaxChange())
-	if out.Sign() < 0 {
-		return out.Neg()
-	}
-	return out
+	return k.getRatioOfMax(k.GetLowerShadowHeight())
 }
 
 func (k *KLine) GetLowerShadowHeight() fixedpoint.Value {
@@ -214,6 +206,30 @@ func (k *KLine) GetLowerShadowHeight() fixedpoint.Value {
 
 	// downtrend
 	return k.Close.Sub(low)
+}
+
+func (k *KLine) GetUpperPower() fixedpoint.Value {
+	return k.Close.Sub(k.Low)
+}
+
+func (k *KLine) GetUpperPowerRatio() fixedpoint.Value {
+	return k.getRatioOfMax(k.GetUpperPower())
+}
+
+func (k *KLine) GetLowerPower() fixedpoint.Value {
+	return k.Close.Sub(k.High)
+}
+
+func (k *KLine) GetLowerPowerRatio() fixedpoint.Value {
+	return k.getRatioOfMax(k.GetLowerPower())
+}
+
+func (k *KLine) getRatioOfMax(value fixedpoint.Value) fixedpoint.Value {
+	out := value.Div(k.GetMaxChange())
+	if out.Sign() < 0 {
+		return out.Neg()
+	}
+	return out
 }
 
 // GetBody returns the height of the candle real body
