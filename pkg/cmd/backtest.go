@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -566,6 +567,17 @@ var BacktestCmd = &cobra.Command{
 			configJsonFile := filepath.Join(reportDir, "config.json")
 			if err := util.WriteJsonFile(configJsonFile, userConfig); err != nil {
 				return errors.Wrapf(err, "can not write config json file: %s", configJsonFile)
+			}
+
+			// copy configFile to report folder
+			sourceConfigFile := filepath.Join(reportDir, filepath.Base(configFile))
+			input, err := ioutil.ReadFile(configFile)
+			if err != nil {
+				return errors.Wrapf(err, "can read yaml to target. name: %s", configFile)
+			}
+			err = ioutil.WriteFile(sourceConfigFile, input, 0644)
+			if err != nil {
+				return errors.Wrapf(err, "can't copy yaml write to target. name: %s", sourceConfigFile)
 			}
 
 			// append report index
