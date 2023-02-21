@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/c9s/bbgo/pkg/optimizer"
-	"github.com/fatih/color"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/c9s/bbgo/pkg/optimizer"
+	"github.com/c9s/bbgo/pkg/util"
+	"github.com/fatih/color"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -145,6 +147,7 @@ var hoptimizeCmd = &cobra.Command{
 
 			// print report JSON to stdout
 			fmt.Println(string(out))
+			util.WriteJsonFile(fmt.Sprintf("%s/report.json", outputDirectory), report)
 		} else if printTsvFormat {
 			if err := optimizer.FormatResultsTsv(os.Stdout, report.Parameters, report.Trials); err != nil {
 				return err
