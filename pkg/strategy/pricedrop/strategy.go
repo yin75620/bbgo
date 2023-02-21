@@ -110,3 +110,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 	return nil
 }
+
+// InstanceID returns the instance identifier from the current grid configuration parameters
+func (s *Strategy) InstanceID() string {
+	return fmt.Sprintf("%s-%s-%d-%0.5f", ID, s.Symbol, s.Interval, s.MinDropPercentage)
+}
