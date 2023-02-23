@@ -1,0 +1,57 @@
+---
+sessions:
+  binance:
+    exchange: binance
+    envVarPrefix: binance
+
+  #max:
+  #  exchange: max
+  #  envVarPrefix: max
+
+riskControls:
+  # This is the session-based risk controller, which let you configure different risk controller by session.
+  sessionBased:
+    # "binance" is the session name that you want to configure the risk control
+    binance:
+      # orderExecutor is one of the risk control
+      orderExecutor:
+        # symbol-routed order executor
+        bySymbol:
+          ETHUSDT:
+            # basic risk control order executor
+            basic:
+              minQuoteBalance: 100.0
+              maxBaseAssetBalance: 3.0
+              minBaseAssetBalance: 0.0
+              maxOrderAmount: 1000.0
+
+# example command:
+#    godotenv -f .env.local -- go run ./cmd/bbgo backtest --sync-from 2020-11-01 --config config/grid.yaml --base-asset-baseline
+backtest:
+  # for testing max draw down (MDD) at 03-12
+  # see here for more details
+  # https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp
+  startTime: "2022-07-27"
+  endTime: "2022-07-30"
+  symbols:
+    - ETHUSDT
+  sessions: [binance]
+  accounts:
+    binance:
+      makerFeeRate: 0.0%
+      takerFeeRate: 0.0%
+      balances:
+        ETH: 0.0
+        USDT: 10000.0
+        
+
+exchangeStrategies:
+
+- on: binance
+  jeffmw:
+    symbol: ETHUSDT
+    movingAverage:
+      interval: 5m
+      window: 99
+      #rightWindow: 
+

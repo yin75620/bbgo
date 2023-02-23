@@ -22,6 +22,7 @@ import (
 	_ "github.com/c9s/bbgo/pkg/strategy/irr"
 	_ "github.com/c9s/bbgo/pkg/strategy/jeff1"
 	_ "github.com/c9s/bbgo/pkg/strategy/jeffm"
+	_ "github.com/c9s/bbgo/pkg/strategy/jeffmw"
 	_ "github.com/c9s/bbgo/pkg/strategy/kline"
 	_ "github.com/c9s/bbgo/pkg/strategy/linregmaker"
 	_ "github.com/c9s/bbgo/pkg/strategy/marketcap"

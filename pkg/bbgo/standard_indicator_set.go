@@ -189,3 +189,8 @@ func (s *StandardIndicatorSet) VMA(iw types.IntervalWindow) *indicator.VMA {
 	inc := s.allocateSimpleIndicator(&indicator.VMA{IntervalWindow: iw}, iw, "vma")
 	return inc.(*indicator.VMA)
 }
+
+func (s *StandardIndicatorSet) JWMChart(iw types.IntervalWindow) *indicator.JWMChart {
+	inc := s.allocateSimpleIndicator(&indicator.JWMChart{IntervalWindow: iw}, iw, "jwmchart")
+	return inc.(*indicator.JWMChart)
+}
