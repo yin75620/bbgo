@@ -85,10 +85,6 @@ type JWMChart struct {
 
 	Values KInfos
 
-	FinishedTopValues KInfos
-
-	//
-
 	EndTime         time.Time
 	UpdateCallbacks []func(value KInfo)
 }
@@ -105,6 +101,7 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 	for i := maxIndex; i >= 0; i = i - jumpSize {
 		v := &inc.Values[i]
 		if currentKline.High < v.K.High {
+			kinfo.HighLoseLeftIndex += 1
 			break
 		}
 
@@ -115,10 +112,10 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 		jumpSize = v.HighLoseLeftIndex
 		kinfo.HighLoseLeftIndex += v.HighLoseLeftIndex
 		if v.HighLoseLeftIndex == 0 || kinfo.HighLoseLeftIndex >= maxIndex { //表示第一個 or 超過第一個
+			kinfo.HighLoseLeftIndex += 1
 			break
 		}
 	}
-	kinfo.HighLoseLeftIndex += 1
 
 	// 取出這次擊倒的最大KInfo
 	tempKInfos := killedKInfos.GetWidthOver(inc.WinLeftCount, inc.WinRightCount)
