@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/c9s/bbgo/pkg/bbgo"
+	"github.com/c9s/bbgo/pkg/fixedpoint"
 	"github.com/c9s/bbgo/pkg/types"
 )
 
@@ -27,14 +28,31 @@ type State struct {
 type Strategy struct {
 	Symbol        string               `json:"symbol"`
 	MovingAverage types.IntervalWindow `json:"movingAverage"`
+	VmaWindow     int                  `json:"vmaWindow"`
 
-	//State *State `persistence:"state"`
+	//setting
+	LimitLowerHighTimes int              `json:"limitLowerHightTimes"`
+	InitialUsd          fixedpoint.Value `json:"initialUsd"` //if 0 => 100
+	Leverage            fixedpoint.Value `json:"leverage"`   // if 0 => 1
+	WinLeftCount        int              `json:"winLeftCount"`
+	WinRightCount       int              `json:"winRightCount"`
 
-	//ProfitStats *types.ProfitStats `persistence:"profit_stats"`
+	//
+	IncreaseVoScale      fixedpoint.Value `json:"increaseVolScale"`
+	IncreasePriceScale   fixedpoint.Value `json:"increasePriceScale"`
+	AmplificationPercent fixedpoint.Value `json:"amplificationPercent"` //大於
+	ChangeRatio          fixedpoint.Value `json:"changeRatio"`          //大於
+	UpperPowerRatio      fixedpoint.Value `json:"upperPowerRatio"`      //大於
+	UpperShadowRatio     fixedpoint.Value `json:"upperShadowRatio"`     //小於
 
-	// orderStore is used to store all the created orders, so that we can filter the trades.
-	//orderStore     *bbgo.OrderStore
-	//tradeCollector *bbgo.TradeCollector
+	OverAmplificationPercent fixedpoint.Value `json:"overAmplificationPercent"` //小於
+
+	// start info
+	configUsdValue fixedpoint.Value
+
+	hasPosition       bool
+	lowerHighTimes    int
+	lastOrderQuantity fixedpoint.Value
 }
 
 func (s *Strategy) ID() string {
@@ -47,7 +65,7 @@ func (s *Strategy) Subscribe(session *bbgo.ExchangeSession) {
 
 func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, session *bbgo.ExchangeSession) error {
 
-	_, ok := session.Market(s.Symbol)
+	market, ok := session.Market(s.Symbol)
 	if !ok {
 		return fmt.Errorf("market %s is not defined", s.Symbol)
 	}
@@ -60,48 +78,148 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		s.MovingAverage.Window = 99
 	}
 
+	if s.VmaWindow == 0 {
+		s.VmaWindow = 99
+	}
+
+	if s.InitialUsd == 0 {
+		s.InitialUsd = fixedpoint.NewFromFloat(100.0)
+	}
+	if s.Leverage == 0 {
+		s.Leverage = 1
+	}
+
 	standardIndicatorSet := session.StandardIndicatorSet(s.Symbol)
 	if standardIndicatorSet == nil {
 		return fmt.Errorf("standardIndicatorSet is nil, symbol %s", s.Symbol)
 	}
 
 	var iw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.MovingAverage.Window}
-	jwmchart := standardIndicatorSet.JWMChart(iw)
+	jwmchart := standardIndicatorSet.JWMChart(iw, s.WinLeftCount, s.WinRightCount)
 
-	//持倉狀態
-	/*
-		s.tradeCollector = bbgo.NewTradeCollector(s.Symbol, s.State.Position, s.orderStore)
+	var vmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
+	vma := standardIndicatorSet.VMA(vmaIw)
 
-		s.tradeCollector.OnTrade(func(trade types.Trade, profit, netProfit fixedpoint.Value) {
-			bbgo.Notify(trade)
-			s.ProfitStats.AddTrade(trade)
-		})
+	var smaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
+	sma := standardIndicatorSet.SMA(smaIw)
 
-		s.tradeCollector.OnPositionUpdate(func(position *types.Position) {
-			bbgo.Notify(position)
-		})
-		s.tradeCollector.BindStream(session.UserDataStream)
-	*/
-
-	session.MarketDataStream.OnKLineClosed(func(kline types.KLine) {
-		// skip k-lines from other symbols
-		if kline.Symbol != s.Symbol {
-			return
-		}
-
-		if kline.Interval != s.MovingAverage.Interval {
-			return
-		}
-
-		//log.Infof("%s", kline.String())
-
-		//log.Infof("%v", jwmchart.Last())
-		last := jwmchart.Last()
-		if last.IsKillTopKline {
-			fmt.Println(jwmchart.Last())
-		}
-
+	var highXmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
+	highXma := standardIndicatorSet.XMA(highXmaIw, "high", func(k types.KLine) float64 {
+		return k.High.Float64()
 	})
+
+	fmt.Println(highXma)
+
+	s.hasPosition = false
+	usdtBalance, _ := session.Account.Balance("USDT")
+	s.configUsdValue = usdtBalance.Total()
+
+	// skip k-lines from other symbols
+	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
+
+		last := jwmchart.Last()
+		if s.hasPosition {
+			if last.HighLoseLeftIndex == 1 {
+				s.lowerHighTimes += 1
+			}
+
+			if s.lowerHighTimes > s.LimitLowerHighTimes {
+				_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
+					Symbol:   kline.Symbol,
+					Market:   market,
+					Side:     types.SideTypeSell,
+					Type:     types.OrderTypeMarket,
+					Quantity: s.lastOrderQuantity,
+				})
+				if err != nil {
+					log.WithError(err).Error("subit sell order error")
+				}
+				s.hasPosition = false
+				s.lastOrderQuantity = 0
+			}
+		}
+
+		// Buy Check
+
+		//成交量的/超越指定比例
+
+		if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVoScale) < fixedpoint.Zero {
+			return
+		}
+
+		//
+		if kline.Close.Div(fixedpoint.NewFromFloat(sma.Index(1))).Sub(s.IncreasePriceScale) < fixedpoint.Zero {
+			return
+		}
+
+		//K線本身品質檢查
+		if kline.GetAmplification().Sub(s.AmplificationPercent) < fixedpoint.Zero {
+			//波動超過X
+			return
+		}
+
+		if kline.GetAmplification().Sub(s.OverAmplificationPercent) > fixedpoint.Zero {
+			//波動太超過，就剔除
+			return
+		}
+
+		// 實K要超過特定比例
+		if kline.GetThickness().Sub(s.ChangeRatio) < fixedpoint.Zero {
+			return
+		}
+
+		// 向上力道要超過特定比例
+		if kline.GetUpperPowerRatio().Sub(s.UpperPowerRatio) < fixedpoint.Zero {
+			return
+		}
+
+		//上影線要小於特定比例
+		if fixedpoint.One.Sub(kline.GetUpperShadowRatio()).Sub(s.UpperShadowRatio) < fixedpoint.Zero {
+			return
+		}
+
+		if last.IsKillTopKline { // canBuy
+
+			s.lowerHighTimes = 0
+
+			if !s.hasPosition {
+
+				// money check
+				usdtBalance, _ := session.Account.Balance("USDT")
+				revenue := usdtBalance.Total().Sub(s.configUsdValue)
+
+				// order
+				orderUSD := s.InitialUsd.Add(revenue)
+				if orderUSD < 0 {
+					//money not enough
+					return
+				}
+
+				//計算要下單的數量
+				orderUSD = orderUSD.Mul(s.Leverage)
+
+				quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
+
+				//執行購買
+				_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
+					Symbol:   kline.Symbol,
+					Market:   market,
+					Side:     types.SideTypeBuy,
+					Type:     types.OrderTypeMarket,
+					Quantity: quantity,
+				})
+				if err != nil {
+					log.WithError(err).Error("subit buy order error")
+				}
+				s.hasPosition = true
+				s.lastOrderQuantity = quantity
+
+			} else {
+				log.Infoln("already has position")
+			}
+		}
+
+	}))
 
 	return nil
 }

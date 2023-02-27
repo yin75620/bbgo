@@ -17,13 +17,13 @@ riskControls:
       orderExecutor:
         # symbol-routed order executor
         bySymbol:
-          ETHUSDT:
+          BTCUSDT:
             # basic risk control order executor
-            basic:
-              minQuoteBalance: 100.0
-              maxBaseAssetBalance: 3.0
-              minBaseAssetBalance: 0.0
-              maxOrderAmount: 1000.0
+            #basic:
+              #minQuoteBalance: 100.0
+              #maxBaseAssetBalance: 3.0
+              #minBaseAssetBalance: 0.0
+              #maxOrderAmount: 1000.0
 
 # example command:
 #    godotenv -f .env.local -- go run ./cmd/bbgo backtest --sync-from 2020-11-01 --config config/grid.yaml --base-asset-baseline
@@ -31,16 +31,30 @@ backtest:
   # for testing max draw down (MDD) at 03-12
   # see here for more details
   # https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp
-  startTime: "2022-07-27"
-  endTime: "2022-07-30"
+  #startTime: "2018-06-01"
+  #endTime: "2019-06-01"
+
+  # startTime: "2022-07-08"
+  # endTime: "2022-08-20"
+
+  startTime: "2022-01-01"
+  endTime: "2022-12-31"
+
+  # startTime: "2022-11-01"
+  # endTime: "2023-02-23"
+
+  # startTime: "2017-09-01"
+  # endTime: "2023-02-01"
+  
   symbols:
-    - ETHUSDT
+    - BTCUSDT
   sessions: [binance]
   accounts:
     binance:
-      makerFeeRate: 0.0%
-      takerFeeRate: 0.0%
+      makerFeeRate: 0.04%
+      takerFeeRate: 0.04%
       balances:
+        BTC: 0.0
         ETH: 0.0
         USDT: 10000.0
         
@@ -49,9 +63,36 @@ exchangeStrategies:
 
 - on: binance
   jeffmw:
-    symbol: ETHUSDT
+    symbol: BTCUSDT
     movingAverage:
       interval: 5m
       window: 99
       #rightWindow: 
+    
+    initialUsd: 100
+    leverage: 1
 
+    # amplificationPercent: 0.0032
+    # changeRatio: 0.55
+    # increasePriceScale: 0.2
+    # increaseVolScale: 0.8
+    # limitLowerHightTimes: 1
+    # upperPowerRatio: 0.65
+    # upperShadowRatio: 0.07
+    # vmaWindow: 28
+    # winLeftCount: 5
+    # winRightCount: 169
+
+
+    #amplificationPercent: 0.015 # 0.005~0.007
+    #changeRatio: 0 # //0.7~0.8
+    #increasePriceScale: 0 # 0.8
+    #increaseVolScale: 1.3 # 1.0
+    limitLowerHightTimes: 4
+    #upperPowerRatio: 0.3 # 
+    #upperShadowRatio: 0.48 # 0.07  # 0.9表示上影線小於0.1
+    winLeftCount: 51
+    winRightCount: 286
+    #vmaWindow: 2 # 10
+    
+    overAmplificationPercent: 11 # 超過2.3%剔除
