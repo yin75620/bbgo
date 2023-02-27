@@ -37,7 +37,7 @@ backtest:
   # startTime: "2022-07-08"
   # endTime: "2022-08-20"
 
-  startTime: "2022-01-01"
+  startTime: "2022-05-20"
   endTime: "2022-12-31"
 
   # startTime: "2022-11-01"
@@ -90,7 +90,7 @@ exchangeStrategies:
     #increaseVolScale: 1.3 # 1.0
     limitLowerHightTimes: 4
     #upperPowerRatio: 0.3 # 
-    #upperShadowRatio: 0.48 # 0.07  # 0.9表示上影線小於0.1
+    upperShadowRatio: 0.65 # 0.07  # 0.9表示上影線小於0.1
     winLeftCount: 51
     winRightCount: 286
     #vmaWindow: 2 # 10

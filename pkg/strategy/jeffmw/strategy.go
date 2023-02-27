@@ -50,7 +50,7 @@ type Strategy struct {
 	// start info
 	configUsdValue fixedpoint.Value
 
-	hasPosition       bool
+	positionKline     types.KLine
 	lowerHighTimes    int
 	lastOrderQuantity fixedpoint.Value
 }
@@ -110,32 +110,46 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 	fmt.Println(highXma)
 
-	s.hasPosition = false
+	s.positionKline = types.KLine{}
 	usdtBalance, _ := session.Account.Balance("USDT")
 	s.configUsdValue = usdtBalance.Total()
 
+	// prepare function to sell position
+	SellFunc := func(kline types.KLine) {
+		_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
+			Symbol:   kline.Symbol,
+			Market:   market,
+			Side:     types.SideTypeSell,
+			Type:     types.OrderTypeMarket,
+			Quantity: s.lastOrderQuantity,
+		})
+		if err != nil {
+			log.WithError(err).Error("subit sell order error")
+		}
+		s.positionKline = types.KLine{}
+		s.lastOrderQuantity = 0
+	}
+
+	session.MarketDataStream.OnKLine(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
+		//止損策略
+		if s.HasPosition() {
+			if kline.Close < s.positionKline.Low {
+				SellFunc(kline)
+			}
+		}
+
+	}))
 	// skip k-lines from other symbols
 	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
 
 		last := jwmchart.Last()
-		if s.hasPosition {
+		if s.HasPosition() {
 			if last.HighLoseLeftIndex == 1 {
 				s.lowerHighTimes += 1
 			}
 
 			if s.lowerHighTimes > s.LimitLowerHighTimes {
-				_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-					Symbol:   kline.Symbol,
-					Market:   market,
-					Side:     types.SideTypeSell,
-					Type:     types.OrderTypeMarket,
-					Quantity: s.lastOrderQuantity,
-				})
-				if err != nil {
-					log.WithError(err).Error("subit sell order error")
-				}
-				s.hasPosition = false
-				s.lastOrderQuantity = 0
+				SellFunc(kline)
 			}
 		}
 
@@ -182,7 +196,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 			s.lowerHighTimes = 0
 
-			if !s.hasPosition {
+			if !s.HasPosition() {
 
 				// money check
 				usdtBalance, _ := session.Account.Balance("USDT")
@@ -211,7 +225,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 				if err != nil {
 					log.WithError(err).Error("subit buy order error")
 				}
-				s.hasPosition = true
+				s.positionKline = kline
 				s.lastOrderQuantity = quantity
 
 			} else {
@@ -227,4 +241,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 // InstanceID returns the instance identifier from the current grid configuration parameters
 func (s *Strategy) InstanceID() string {
 	return fmt.Sprintf("%s-%s", ID, s.Symbol)
+}
+
+func (s *Strategy) HasPosition() bool {
+	return s.positionKline.Volume != fixedpoint.Zero
 }
