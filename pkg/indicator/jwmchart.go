@@ -1,14 +1,19 @@
 package indicator
 
 import (
+	"fmt"
+	"math"
 	"time"
 
+	"github.com/c9s/bbgo/pkg/fixedpoint"
 	"github.com/c9s/bbgo/pkg/types"
 )
 
 type KInfo struct {
-	HighLoseLeftIndex  int //高點往左數，在第幾個位置高點比人低，第一根K線就是1
-	HighLoseRightIndex int //高點往右數，在第幾個位置高點比人低
+	HighLoseLeftIndex  int              //高點往左數，在第幾個位置高點比人低，第一根K線就是1
+	HighLoseRightIndex int              //高點往右數，在第幾個位置高點比人低
+	LeftLowestPrice    fixedpoint.Value //高點往左的最底點價格
+	RightLowestPrice   fixedpoint.Value //高點往右的最底點價格
 	//LowLoseIndex       int         //低點往左數，在第幾個位置低點比人高
 	K types.KLine // include id, high, low,
 
@@ -74,6 +79,20 @@ func (s *KInfos) GetSumLoseTop() KInfo {
 	return res
 }
 
+func (s *KInfos) GetLeftLowerRight() KInfos {
+	length := len(*s)
+	if length <= 0 {
+		return *s
+	}
+	res := KInfos{}
+	for _, v := range *s {
+		if v.LeftLowestPrice.Mul(fixedpoint.NewFromFloat(0.988)) < v.RightLowestPrice {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
 //go:generate callbackgen -type JWMChart
 type JWMChart struct {
 	types.SeriesBase
@@ -97,9 +116,17 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 	maxIndex := inc.Values.Length() - 1
 	jumpSize := 1
 	killedKInfos := KInfos{}
+	lowestPrice := fixedpoint.NewFromFloat(math.MaxFloat64)
 	// 比較整個數據
 	for i := maxIndex; i >= 0; i = i - jumpSize {
 		v := &inc.Values[i]
+
+		// 先計算是否更新最小值
+		if v.K.Low < lowestPrice {
+			lowestPrice = v.K.Low
+		}
+
+		// 輸贏index處理
 		if currentKline.High < v.K.High {
 			kinfo.HighLoseLeftIndex += 1
 			break
@@ -107,6 +134,7 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 
 		//把已經擊倒的K線數量設定在此處
 		v.HighLoseRightIndex = kinfo.HighLoseLeftIndex + 1
+		v.RightLowestPrice = lowestPrice
 		killedKInfos = append(killedKInfos, *v)
 
 		jumpSize = v.HighLoseLeftIndex
@@ -117,8 +145,11 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 		}
 	}
 
-	// 取出這次擊倒的最大KInfo
+	kinfo.LeftLowestPrice = lowestPrice
 	tempKInfos := killedKInfos.GetWidthOver(inc.WinLeftCount, inc.WinRightCount)
+	tempKInfos = tempKInfos.GetLeftLowerRight()
+
+	// 取出這次擊倒的最大KInfo
 	topKInfo := tempKInfos.GetSumLoseTop()
 
 	kinfo.IsKillTopKline = topKInfo.HighLoseRightIndex != 0
