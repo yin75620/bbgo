@@ -107,8 +107,16 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 	highXma := standardIndicatorSet.XMA(highXmaIw, "high", func(k types.KLine) float64 {
 		return k.High.Float64()
 	})
-
 	fmt.Println(highXma)
+
+	var spoorVolXmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
+	spoorVol := standardIndicatorSet.XMA(spoorVolXmaIw, "spoorVol", func(k types.KLine) float64 {
+		//上影線下影線各算兩次，實Ｋ算一次，價格變化總和/最低價，算出波動率，成交量/波動率 /100，可知一個1%波動率，要多少成交量
+		//越大越穩
+		onePercentSpoorRatio := k.GetOnePercentSpoorVol()
+		return onePercentSpoorRatio.Float64()
+	})
+	fmt.Println(spoorVol)
 
 	s.positionKline = types.KLine{}
 	usdtBalance, _ := session.Account.Balance("USDT")
@@ -130,33 +138,39 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		s.lastOrderQuantity = 0
 	}
 
-	session.MarketDataStream.OnKLine(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
-		//止損策略
-		if s.HasPosition() {
-			if kline.Close < s.positionKline.Low {
-				SellFunc(kline)
-			}
-		}
-
-	}))
 	// skip k-lines from other symbols
 	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
 
+		//fmt.Println(kline.StartTime)
+
 		last := jwmchart.Last()
 		if s.HasPosition() {
+
+			//止損策略
+			// if kline.Close < s.positionKline.Low-s.positionKline.GetChange()*2 {
+			// 	//SellFunc(kline)
+			// 	return
+			// }
+
 			if last.HighLoseLeftIndex == 1 {
 				s.lowerHighTimes += 1
 			}
 
 			if s.lowerHighTimes > s.LimitLowerHighTimes {
 				SellFunc(kline)
+				return
 			}
 		}
 
 		// Buy Check
 
-		//成交量的/超越指定比例
+		// 軌跡波動量超越均量特定比例
+		//spoorRate := kline.GetOnePercentSpoorVol().Div(fixedpoint.NewFromFloat(spoorVol.Last()))
+		//if spoorRate.Sub(fixedpoint.NewFromFloat(1.08)) > fixedpoint.Zero {
+		//	return
+		//}
 
+		//成交量的/超越指定比例
 		if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVoScale) < fixedpoint.Zero {
 			return
 		}

@@ -232,6 +232,13 @@ func (k *KLine) getRatioOfMax(value fixedpoint.Value) fixedpoint.Value {
 	return out
 }
 
+func (k *KLine) GetOnePercentSpoorVol() fixedpoint.Value {
+	maxSpoor := k.GetMaxChange() + k.GetUpperShadowHeight() + k.GetLowerShadowHeight()
+	spoorRatio := (maxSpoor.Div(k.Low)).Mul(fixedpoint.NewFromFloat(100))
+	onePercentSpoorRatio := k.Volume.Div(spoorRatio)
+	return onePercentSpoorRatio
+}
+
 // GetBody returns the height of the candle real body
 func (k *KLine) GetBody() fixedpoint.Value {
 	return k.GetChange()
