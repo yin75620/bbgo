@@ -1,0 +1,50 @@
+---
+sessions:
+  binance:
+    exchange: binance
+    envVarPrefix: binance
+
+riskControls:
+  # This is the session-based risk controller, which let you configure different risk controller by session.
+  sessionBased:
+    # "binance" is the session name that you want to configure the risk control
+    binance:
+      # orderExecutor is one of the risk control
+      orderExecutor:
+        # symbol-routed order executor
+        bySymbol:
+          BTCUSDT:
+            # basic risk control order executor
+            #basic:
+              #minQuoteBalance: 100.0
+              #maxBaseAssetBalance: 3.0
+              #minBaseAssetBalance: 0.0
+              #maxOrderAmount: 1000.0
+backtest:
+
+  startTime: "2022-07-13T12:25:00"
+  endTime: "2022-07-13T12:40:00"
+
+  symbols:
+    - BTCUSDT
+  sessions: [binance]
+  accounts:
+    binance:
+      makerFeeRate: 0.04%
+      takerFeeRate: 0.04%
+      balances:
+        BTC: 0.0
+        ETH: 0.0
+        USDT: 10000.0
+        
+
+exchangeStrategies:
+
+- on: binance
+  oneTrade:
+    symbol: BTCUSDT
+    movingAverage:
+      interval: 5m
+      window: 99
+    
+    
