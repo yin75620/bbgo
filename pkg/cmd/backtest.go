@@ -543,8 +543,8 @@ var BacktestCmd = &cobra.Command{
 				summaryReport.TotalUnrealizedProfit = symbolReport.PnL.UnrealizedProfit
 				summaryReport.InitialEquityValue = summaryReport.InitialEquityValue.Add(symbolReport.InitialEquityValue())
 				summaryReport.FinalEquityValue = summaryReport.FinalEquityValue.Add(symbolReport.FinalEquityValue())
-				summaryReport.TotalGrossProfit.Add(symbolReport.PnL.GrossProfit)
-				summaryReport.TotalGrossLoss.Add(symbolReport.PnL.GrossLoss)
+				summaryReport.TotalGrossProfit = summaryReport.TotalGrossProfit.Add(symbolReport.PnL.GrossProfit)
+				summaryReport.TotalGrossLoss = summaryReport.TotalGrossLoss.Add(symbolReport.PnL.GrossLoss)
 				summaryReport.MaximumConsecutiveLoss = summaryReport.MaximumConsecutiveLoss.Add(symbolReport.MaximumConsecutiveLoss)
 
 				// write report to a file
