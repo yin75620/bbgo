@@ -64,6 +64,11 @@ type Position struct {
 	modifyCallbacks []func(baseQty fixedpoint.Value, quoteQty fixedpoint.Value, price fixedpoint.Value)
 }
 
+// 強迫設定NetProfit給Profit，最佳化時比較方便
+func isSetNetProfitAsProfit() bool {
+	return true
+}
+
 func (p *Position) CsvHeader() []string {
 	return []string{
 		"symbol",
@@ -498,6 +503,9 @@ func (p *Position) AddTrade(td Trade) (profit fixedpoint.Value, netProfit fixedp
 			if p.Base.Add(quantity).Sign() > 0 {
 				profit = p.AverageCost.Sub(price).Mul(p.Base.Neg())
 				netProfit = p.ApproximateAverageCost.Sub(price).Mul(p.Base.Neg()).Sub(feeInQuote)
+				if isSetNetProfitAsProfit() {
+					profit = netProfit
+				}
 				p.Base = p.Base.Add(quantity)
 				p.Quote = p.Quote.Sub(quoteQuantity)
 				p.AverageCost = price
@@ -511,6 +519,9 @@ func (p *Position) AddTrade(td Trade) (profit fixedpoint.Value, netProfit fixedp
 				p.Quote = p.Quote.Sub(quoteQuantity)
 				profit = p.AverageCost.Sub(price).Mul(quantity)
 				netProfit = p.ApproximateAverageCost.Sub(price).Mul(quantity).Sub(feeInQuote)
+				if isSetNetProfitAsProfit() {
+					profit = netProfit
+				}
 				p.AccumulatedProfit = p.AccumulatedProfit.Add(profit)
 				return profit, netProfit, true
 			}
@@ -540,6 +551,9 @@ func (p *Position) AddTrade(td Trade) (profit fixedpoint.Value, netProfit fixedp
 			if p.Base.Compare(quantity) < 0 {
 				profit = price.Sub(p.AverageCost).Mul(p.Base)
 				netProfit = price.Sub(p.ApproximateAverageCost).Mul(p.Base).Sub(feeInQuote)
+				if isSetNetProfitAsProfit() {
+					profit = netProfit
+				}
 				p.Base = p.Base.Sub(quantity)
 				p.Quote = p.Quote.Add(quoteQuantity)
 				p.AverageCost = price
@@ -552,6 +566,9 @@ func (p *Position) AddTrade(td Trade) (profit fixedpoint.Value, netProfit fixedp
 				p.Quote = p.Quote.Add(quoteQuantity)
 				profit = price.Sub(p.AverageCost).Mul(quantity)
 				netProfit = price.Sub(p.ApproximateAverageCost).Mul(quantity).Sub(feeInQuote)
+				if isSetNetProfitAsProfit() {
+					profit = netProfit
+				}
 				p.AccumulatedProfit = p.AccumulatedProfit.Add(profit)
 				return profit, netProfit, true
 			}
