@@ -190,9 +190,12 @@ func (s *StandardIndicatorSet) VMA(iw types.IntervalWindow) *indicator.VMA {
 	return inc.(*indicator.VMA)
 }
 
-func (s *StandardIndicatorSet) JWMChart(iw types.IntervalWindow, winLeftCount, winRightCount int) *indicator.JWMChart {
+func (s *StandardIndicatorSet) JWMChart(iw types.IntervalWindow, winLeftCount, winRightCount int,
+	allowRightUpPercent float64) *indicator.JWMChart {
+
 	inc := s.allocateSimpleIndicator(
-		&indicator.JWMChart{IntervalWindow: iw, WinLeftCount: winLeftCount, WinRightCount: winRightCount},
+		&indicator.JWMChart{IntervalWindow: iw, WinLeftCount: winLeftCount, WinRightCount: winRightCount,
+			AllowRightUpPercent: allowRightUpPercent},
 		iw,
 		"jwmchart")
 	return inc.(*indicator.JWMChart)

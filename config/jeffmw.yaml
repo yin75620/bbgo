@@ -94,5 +94,6 @@ exchangeStrategies:
     winLeftCount: 51
     winRightCount: 286
     #vmaWindow: 2 # 10
+    allowRightUpPercent: 0.012
     
     overAmplificationPercent: 11 # 超過2.3%剔除

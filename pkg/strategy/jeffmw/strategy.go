@@ -36,6 +36,7 @@ type Strategy struct {
 	Leverage            fixedpoint.Value `json:"leverage"`   // if 0 => 1
 	WinLeftCount        int              `json:"winLeftCount"`
 	WinRightCount       int              `json:"winRightCount"`
+	AllowRightUpPercent float64          `json:"allowRightUpPercent"` //0.012就表示右邊低點往上1.012倍後會比左邊低點高
 
 	//
 	IncreaseVoScale      fixedpoint.Value `json:"increaseVolScale"`
@@ -95,7 +96,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 	}
 
 	var iw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.MovingAverage.Window}
-	jwmchart := standardIndicatorSet.JWMChart(iw, s.WinLeftCount, s.WinRightCount)
+	jwmchart := standardIndicatorSet.JWMChart(iw, s.WinLeftCount, s.WinRightCount, s.AllowRightUpPercent)
 
 	var vmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
 	vma := standardIndicatorSet.VMA(vmaIw)

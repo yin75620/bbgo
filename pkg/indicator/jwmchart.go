@@ -79,14 +79,14 @@ func (s *KInfos) GetSumLoseTop() KInfo {
 	return res
 }
 
-func (s *KInfos) GetLeftLowerRight() KInfos {
+func (s *KInfos) GetLeftLowerRight(allowRightUpPercent float64) KInfos {
 	length := len(*s)
 	if length <= 0 {
 		return *s
 	}
 	res := KInfos{}
 	for _, v := range *s {
-		if v.LeftLowestPrice.Mul(fixedpoint.NewFromFloat(0.988)) < v.RightLowestPrice {
+		if v.LeftLowestPrice < v.RightLowestPrice.Mul(fixedpoint.NewFromFloat(1+allowRightUpPercent)) {
 			res = append(res, v)
 		}
 	}
@@ -99,8 +99,9 @@ type JWMChart struct {
 	types.IntervalWindow
 
 	// Setting 高點要贏左右各多少個K線才算合格
-	WinLeftCount  int
-	WinRightCount int
+	WinLeftCount        int
+	WinRightCount       int
+	AllowRightUpPercent float64
 
 	Values KInfos
 
@@ -147,7 +148,7 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 
 	kinfo.LeftLowestPrice = lowestPrice
 	tempKInfos := killedKInfos.GetWidthOver(inc.WinLeftCount, inc.WinRightCount)
-	tempKInfos = tempKInfos.GetLeftLowerRight()
+	tempKInfos = tempKInfos.GetLeftLowerRight(inc.AllowRightUpPercent)
 
 	// 取出這次擊倒的最大KInfo
 	topKInfo := tempKInfos.GetSumLoseTop()
