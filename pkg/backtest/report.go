@@ -50,6 +50,8 @@ type SummaryReport struct {
 	TotalGrossProfit fixedpoint.Value `json:"totalGrossProfit,omitempty"`
 	TotalGrossLoss   fixedpoint.Value `json:"totalGrossLoss,omitempty"`
 
+	MaximumConsecutiveLoss fixedpoint.Value `json:"maximumConsecutiveLoss"`
+
 	SymbolReports []SessionSymbolReport `json:"symbolReports,omitempty"`
 
 	Manifests Manifests `json:"manifests,omitempty"`
@@ -84,6 +86,8 @@ type SessionSymbolReport struct {
 	Sortino         fixedpoint.Value          `json:"sortinoRatio"`
 	ProfitFactor    fixedpoint.Value          `json:"profitFactor"`
 	WinningRatio    fixedpoint.Value          `json:"winningRatio"`
+
+	MaximumConsecutiveLoss fixedpoint.Value `json:"maximumConsecutiveLoss"`
 }
 
 func (r *SessionSymbolReport) InitialEquityValue() fixedpoint.Value {
