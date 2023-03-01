@@ -45,6 +45,7 @@ type SummaryReport struct {
 	// TotalProfit is the profit aggregated from the symbol reports
 	TotalProfit           fixedpoint.Value `json:"totalProfit,omitempty"`
 	TotalUnrealizedProfit fixedpoint.Value `json:"totalUnrealizedProfit,omitempty"`
+	TotalNetProfit        fixedpoint.Value `json:"totalNetProfit,omitempty"`
 
 	TotalGrossProfit fixedpoint.Value `json:"totalGrossProfit,omitempty"`
 	TotalGrossLoss   fixedpoint.Value `json:"totalGrossLoss,omitempty"`
