@@ -37,6 +37,7 @@ type Strategy struct {
 	WinLeftCount        int              `json:"winLeftCount"`
 	WinRightCount       int              `json:"winRightCount"`
 	AllowRightUpPercent float64          `json:"allowRightUpPercent"` //0.012就表示右邊低點往上1.012倍後會比左邊低點高
+	IsCompoundOrder     bool             `json:"isCompoundOrder"`
 
 	//
 	IncreaseVoScale      fixedpoint.Value `json:"increaseVolScale"`
@@ -213,15 +214,21 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 			if !s.HasPosition() {
 
+				// order
+				orderUSD := s.InitialUsd
+
 				// money check
 				usdtBalance, _ := session.Account.Balance("USDT")
 				revenue := usdtBalance.Total().Sub(s.configUsdValue)
+				totalAvalableUSD := orderUSD.Add(revenue)
 
-				// order
-				orderUSD := s.InitialUsd.Add(revenue)
-				if orderUSD < 0 {
+				if totalAvalableUSD < 0 {
 					//money not enough
 					return
+				}
+
+				if s.IsCompoundOrder {
+					orderUSD = totalAvalableUSD
 				}
 
 				//計算要下單的數量
