@@ -454,7 +454,7 @@ func (p *Position) AddTrade(td Trade) (profit fixedpoint.Value, netProfit fixedp
 
 	case p.QuoteCurrency:
 		if !td.IsFutures {
-			quoteQuantity = quoteQuantity.Sub(fee)
+			feeInQuote = fee
 		}
 
 	default:
