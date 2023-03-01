@@ -49,8 +49,16 @@ var ProfitFactorMetricValueFunc = func(summaryReport *backtest.SummaryReport) fl
 	}
 	report := summaryReport.SymbolReports[0]
 	pf := report.ProfitFactor.Float64()
-	win := report.WinningRatio.Float64()
-	return pf*0.9 + win*0.1
+	return pf
+}
+
+var WinningRatioFunc = func(summaryReport *backtest.SummaryReport) float64 {
+	if len(summaryReport.SymbolReports) == 0 {
+		return 0
+	}
+
+	report := summaryReport.SymbolReports[0]
+	return report.WinningRatio.Float64()
 }
 
 type Metric struct {
@@ -213,6 +221,7 @@ func (o *GridOptimizer) Run(executor Executor, configJson []byte) (map[string][]
 		"totalVolume":     TotalVolume,
 		"totalEquityDiff": TotalEquityDiff,
 		"profitFactor":    ProfitFactorMetricValueFunc,
+		"winningRatio":    WinningRatioFunc,
 	}
 	var metrics = map[string][]Metric{}
 
