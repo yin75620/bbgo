@@ -646,6 +646,7 @@ func createSymbolReport(userConfig *bbgo.Config, session *bbgo.ExchangeSession, 
 	accountConfig := userConfig.Backtest.GetAccount(session.Exchange.Name().String())
 	initBalances := accountConfig.Balances.BalanceMap()
 	finalBalances := session.GetAccount().Balances()
+	recoveryFactor := report.Profit.Div(maximumConsecutiveLoss).Abs()
 	symbolReport := backtest.SessionSymbolReport{
 		Exchange:        session.Exchange.Name(),
 		Symbol:          symbol,
@@ -662,6 +663,7 @@ func createSymbolReport(userConfig *bbgo.Config, session *bbgo.ExchangeSession, 
 		WinningRatio: winningRatio,
 
 		MaximumConsecutiveLoss: maximumConsecutiveLoss,
+		RecoveryFactor:         recoveryFactor,
 	}
 
 	for _, s := range session.Subscriptions {
