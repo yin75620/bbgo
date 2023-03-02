@@ -61,6 +61,24 @@ var WinningRatioFunc = func(summaryReport *backtest.SummaryReport) float64 {
 	return report.WinningRatio.Float64()
 }
 
+var MaxDropDownFunc = func(summaryReport *backtest.SummaryReport) float64 {
+	if len(summaryReport.SymbolReports) == 0 {
+		return 0
+	}
+
+	report := summaryReport.SymbolReports[0]
+	return report.MaximumConsecutiveLoss.Float64()
+}
+
+var RecoveryFactorFunc = func(summaryReport *backtest.SummaryReport) float64 {
+	if len(summaryReport.SymbolReports) == 0 {
+		return 0
+	}
+
+	report := summaryReport.SymbolReports[0]
+	return report.RecoveryFactor.Float64()
+}
+
 type Metric struct {
 	// Labels is the labels of the given parameters
 	Labels []string `json:"labels,omitempty"`
@@ -222,6 +240,8 @@ func (o *GridOptimizer) Run(executor Executor, configJson []byte) (map[string][]
 		"totalEquityDiff": TotalEquityDiff,
 		"profitFactor":    ProfitFactorMetricValueFunc,
 		"winningRatio":    WinningRatioFunc,
+		"maxDropDown":     MaxDropDownFunc,
+		"RecoveryFactor":  RecoveryFactorFunc,
 	}
 	var metrics = map[string][]Metric{}
 
