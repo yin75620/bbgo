@@ -17,7 +17,8 @@ type KInfo struct {
 	//LowLoseIndex       int         //低點往左數，在第幾個位置低點比人高
 	K types.KLine // include id, high, low,
 
-	IsKillTopKline bool
+	//IsKillTopKline bool
+	KilledKInfos KInfos
 }
 
 type KBunch struct {
@@ -48,14 +49,15 @@ func (s *KInfos) Length() int {
 	return len(*s)
 }
 
-func (s *KInfos) GetWidthOver(left int, right int) KInfos {
+func (s *KInfos) GetWidthRange(left int, right int, leftMax, rightMax int) KInfos {
 	length := len(*s)
 	if length <= 0 {
 		return *s
 	}
 	res := KInfos{}
 	for _, v := range *s {
-		if v.HighLoseLeftIndex > left && v.HighLoseRightIndex > right {
+		if v.HighLoseLeftIndex > left && v.HighLoseRightIndex > right &&
+			v.HighLoseLeftIndex < leftMax && v.HighLoseRightIndex < rightMax {
 			res = append(res, v)
 		}
 	}
@@ -73,6 +75,23 @@ func (s *KInfos) GetSumLoseTop() KInfo {
 		sum := v.HighLoseLeftIndex + v.HighLoseRightIndex
 		if sum > sumLoseMax {
 			sumLoseMax = sum
+			res = v
+		}
+	}
+	return res
+}
+
+func (s *KInfos) GetSumLoseMin() KInfo {
+	length := len(*s)
+	res := KInfo{}
+	if length <= 0 {
+		return res
+	}
+	sumLoseMin := math.MaxInt32
+	for _, v := range *s {
+		sum := v.HighLoseLeftIndex + v.HighLoseRightIndex
+		if sum < sumLoseMin {
+			sumLoseMin = sum
 			res = v
 		}
 	}
@@ -147,13 +166,14 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 	}
 
 	kinfo.LeftLowestPrice = lowestPrice
-	tempKInfos := killedKInfos.GetWidthOver(inc.WinLeftCount, inc.WinRightCount)
-	tempKInfos = tempKInfos.GetLeftLowerRight(inc.AllowRightUpPercent)
+	//tempKInfos := killedKInfos.GetWidthRange(inc.WinLeftCount, inc.WinRightCount, 10000, 10000)
+	//tempKInfos = tempKInfos.GetLeftLowerRight(inc.AllowRightUpPercent)
 
 	// 取出這次擊倒的最大KInfo
-	topKInfo := tempKInfos.GetSumLoseTop()
+	//topKInfo := tempKInfos.GetSumLoseTop()
 
-	kinfo.IsKillTopKline = topKInfo.HighLoseRightIndex != 0
+	//kinfo.IsKillTopKline = topKInfo.HighLoseRightIndex != 0
+	kinfo.KilledKInfos = killedKInfos
 
 	inc.Values = append(inc.Values, kinfo)
 }

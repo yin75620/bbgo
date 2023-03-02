@@ -36,12 +36,14 @@ type Strategy struct {
 	Leverage            fixedpoint.Value `json:"leverage"`   // if 0 => 1
 	WinLeftCount        int              `json:"winLeftCount"`
 	WinRightCount       int              `json:"winRightCount"`
+	WinMaxMul           int              `json:"winMaxMul"`
 	AllowRightUpPercent float64          `json:"allowRightUpPercent"` //0.012就表示右邊低點往上1.012倍後會比左邊低點高
 	IsCompoundOrder     bool             `json:"isCompoundOrder"`
 
 	//
-	IncreaseVoScale      fixedpoint.Value `json:"increaseVolScale"`
+	IncreaseVolScale     fixedpoint.Value `json:"increaseVolScale"`
 	IncreasePriceScale   fixedpoint.Value `json:"increasePriceScale"`
+	GainVolPreDayScale   fixedpoint.Value `json:"gainVolPreDayScale"`
 	AmplificationPercent fixedpoint.Value `json:"amplificationPercent"` //大於
 	ChangeRatio          fixedpoint.Value `json:"changeRatio"`          //大於
 	UpperPowerRatio      fixedpoint.Value `json:"upperPowerRatio"`      //大於
@@ -89,6 +91,10 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 	}
 	if s.Leverage == 0 {
 		s.Leverage = 1
+	}
+
+	if s.WinMaxMul == 0 {
+		s.WinMaxMul = 1000
 	}
 
 	standardIndicatorSet := session.StandardIndicatorSet(s.Symbol)
@@ -172,10 +178,19 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		//	return
 		//}
 
-		//成交量的/超越指定比例
-		if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVoScale) < fixedpoint.Zero {
+		//成交量的/超越均量指定比例
+		if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVolScale) < fixedpoint.Zero {
 			return
 		}
+
+		//成交量比前一根高出指定比例
+		if kline.Volume.Div(jwmchart.Index(1).K.Volume).Sub(s.GainVolPreDayScale) < fixedpoint.Zero {
+			return
+		}
+
+		// if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(4.3)) < fixedpoint.Zero {
+		// 	return
+		// }
 
 		//
 		if kline.Close.Div(fixedpoint.NewFromFloat(sma.Index(1))).Sub(s.IncreasePriceScale) < fixedpoint.Zero {
@@ -208,8 +223,11 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 			return
 		}
 
-		if last.IsKillTopKline { // canBuy
+		killedKinfos := last.KilledKInfos
+		rangedKInfos := killedKinfos.GetWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
+		tempKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
 
+		if tempKInfos.Length() != 0 { // canBuy
 			s.lowerHighTimes = 0
 
 			if !s.HasPosition() {
@@ -236,6 +254,11 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 				quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
 
+				//設定 Tag資訊
+
+				tempKInfo := tempKInfos.GetSumLoseMin()
+				tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.HighLoseLeftIndex, tempKInfo.HighLoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
+
 				//執行購買
 				_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
 					Symbol:   kline.Symbol,
@@ -243,6 +266,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 					Side:     types.SideTypeBuy,
 					Type:     types.OrderTypeMarket,
 					Quantity: quantity,
+					Tag:      tag,
 				})
 				if err != nil {
 					log.WithError(err).Error("subit buy order error")
