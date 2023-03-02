@@ -13,7 +13,7 @@ const OrderListTable = (props: OrderListTableProps) => {
   let orders = props.orders;
 
   const [showCanceledOrders, setShowCanceledOrders] = useState(false);
-  const [limit, setLimit] = useState(props.limit || 100);
+  const [limit, setLimit] = useState(props.limit || 1100);
 
   if (!showCanceledOrders) {
     orders = orders.filter((order: Order) => {
