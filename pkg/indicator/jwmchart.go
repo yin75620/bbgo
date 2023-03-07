@@ -1,7 +1,6 @@
 package indicator
 
 import (
-	"fmt"
 	"math"
 	"time"
 
