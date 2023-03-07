@@ -321,6 +321,8 @@ var BacktestCmd = &cobra.Command{
 				tradeCollector := bbgo.NewTradeCollector(usedSymbol, position, orderStore)
 
 				tradeStats := types.NewTradeStats(usedSymbol)
+				//temp for using
+				tradeStats.SetInitialCapital(fixedpoint.NewFromFloat(100))
 				tradeStats.SetIntervalProfitCollector(types.NewIntervalProfitCollector(types.Interval1d, startTime))
 				tradeCollector.OnProfit(func(trade types.Trade, profit *types.Profit) {
 					if profit == nil {
