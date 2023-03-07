@@ -188,6 +188,21 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 			return
 		}
 
+		//找到輸掉的那一根Ｋ線，再往前N跟，如果有出現尖頭，也不交易
+		// width := 2
+		// leftSideKinfos := jwmchart.IndexWidth(last.HighLoseLeftIndex, width)
+		// topKinfos := leftSideKinfos.GetHighLoseLeftIndexLargerThan(450)
+
+		// if len(topKinfos) != 0 {
+		// 	return
+		// }
+
+		//成交量過大於均量N倍剔除
+		//maxRatio := 14.0 // default as 9999
+		//if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(maxRatio)) > fixedpoint.Zero {
+		//	return
+		//}
+
 		// if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(4.3)) < fixedpoint.Zero {
 		// 	return
 		// }

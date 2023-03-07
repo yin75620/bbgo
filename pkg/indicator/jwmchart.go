@@ -49,6 +49,18 @@ func (s *KInfos) Length() int {
 	return len(*s)
 }
 
+func (s *KInfos) IndexWidth(i int, width int) KInfos {
+	length := len(*s)
+	if length-i <= 0 || i < 0 {
+		return KInfos{}
+	}
+	leftSide := length - i - 1 - width
+	if leftSide < 0 {
+		leftSide = 0
+	}
+	return (*s)[leftSide : length-i-1]
+}
+
 func (s *KInfos) GetWidthRange(left int, right int, leftMax, rightMax int) KInfos {
 	length := len(*s)
 	if length <= 0 {
@@ -106,6 +118,20 @@ func (s *KInfos) GetLeftLowerRight(allowRightUpPercent float64) KInfos {
 	res := KInfos{}
 	for _, v := range *s {
 		if v.LeftLowestPrice < v.RightLowestPrice.Mul(fixedpoint.NewFromFloat(1+allowRightUpPercent)) {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func (s *KInfos) GetHighLoseLeftIndexLargerThan(minIndex int) KInfos {
+	length := len(*s)
+	if length <= 0 {
+		return *s
+	}
+	res := KInfos{}
+	for _, v := range *s {
+		if v.HighLoseLeftIndex > minIndex && v.HighLoseRightIndex == 0 {
 			res = append(res, v)
 		}
 	}
@@ -197,6 +223,13 @@ func (inc *JWMChart) Last() KInfo {
 		return KInfo{}
 	}
 	return inc.Values.Last()
+}
+
+func (inc *JWMChart) IndexWidth(index, width int) KInfos {
+	if inc.Values == nil {
+		return KInfos{}
+	}
+	return inc.Values.IndexWidth(index, width)
 }
 
 // interfaces implementation check
