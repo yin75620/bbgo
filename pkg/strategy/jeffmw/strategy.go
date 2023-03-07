@@ -51,6 +51,9 @@ type Strategy struct {
 
 	OverAmplificationPercent fixedpoint.Value `json:"overAmplificationPercent"` //小於
 
+	ForwardWidth         int `json:"ForwardWidth"`
+	HighLoseLeftIndexMin int `json:"highLoseLeftIndexMin"`
+
 	// start info
 	configUsdValue fixedpoint.Value
 
@@ -166,6 +169,11 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 				s.lowerHighTimes += 1
 			}
 
+			// if kline.Close > s.positionKline.High && kline.Volume < s.positionKline.Volume {
+			// 	SellFunc(kline)
+			// 	return
+			// }
+
 			if s.lowerHighTimes > s.LimitLowerHighTimes ||
 				kline.Close.Sub(s.klineLow) < fixedpoint.Zero {
 				SellFunc(kline)
@@ -192,13 +200,14 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		}
 
 		//找到輸掉的那一根Ｋ線，再往前N跟，如果有出現尖頭，也不交易
-		// width := 2
-		// leftSideKinfos := jwmchart.IndexWidth(last.HighLoseLeftIndex, width)
-		// topKinfos := leftSideKinfos.GetHighLoseLeftIndexLargerThan(450)
+		if s.HighLoseLeftIndexMin != 0 {
+			leftSideKinfos := jwmchart.IndexWidth(last.HighLoseLeftIndex, s.ForwardWidth)
+			topKinfos := leftSideKinfos.GetHighLoseLeftIndexLargerThan(s.HighLoseLeftIndexMin)
 
-		// if len(topKinfos) != 0 {
-		// 	return
-		// }
+			if len(topKinfos) != 0 {
+				return
+			}
+		}
 
 		//成交量過大於均量N倍剔除
 		//maxRatio := 14.0 // default as 9999
@@ -273,7 +282,6 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 				quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
 
 				//設定 Tag資訊
-
 				tempKInfo := tempKInfos.GetSumLoseMin()
 				tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.HighLoseLeftIndex, tempKInfo.HighLoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
 
