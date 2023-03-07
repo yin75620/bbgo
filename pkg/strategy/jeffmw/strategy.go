@@ -57,6 +57,7 @@ type Strategy struct {
 	positionKline     types.KLine
 	lowerHighTimes    int
 	lastOrderQuantity fixedpoint.Value
+	klineLow          fixedpoint.Value
 }
 
 func (s *Strategy) ID() string {
@@ -143,7 +144,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 			log.WithError(err).Error("subit sell order error")
 		}
 		s.positionKline = types.KLine{}
-		s.lastOrderQuantity = 0
+		s.lastOrderQuantity = fixedpoint.Zero
+		s.klineLow = fixedpoint.Zero
 	}
 
 	// skip k-lines from other symbols
@@ -152,7 +154,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		//fmt.Println(kline.StartTime)
 
 		last := jwmchart.Last()
-		if s.HasPosition() {
+		if s.HasPosition() { //prepare sell
 
 			//止損策略
 			// if kline.Close < s.positionKline.Low-s.positionKline.GetChange()*2 {
@@ -164,7 +166,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 				s.lowerHighTimes += 1
 			}
 
-			if s.lowerHighTimes > s.LimitLowerHighTimes {
+			if s.lowerHighTimes > s.LimitLowerHighTimes ||
+				kline.Close.Sub(s.klineLow) < fixedpoint.Zero {
 				SellFunc(kline)
 				return
 			}
@@ -288,6 +291,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 				}
 				s.positionKline = kline
 				s.lastOrderQuantity = quantity
+				s.klineLow = kline.Low
 
 			} else {
 				log.Infoln("already has position")
