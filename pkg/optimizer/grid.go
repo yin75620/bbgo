@@ -61,7 +61,7 @@ var WinningRatioFunc = func(summaryReport *backtest.SummaryReport) float64 {
 	return report.WinningRatio.Float64()
 }
 
-var MaxDropDownFunc = func(summaryReport *backtest.SummaryReport) float64 {
+var MaximumConsecutiveLossFunc = func(summaryReport *backtest.SummaryReport) float64 {
 	if len(summaryReport.SymbolReports) == 0 {
 		return 0
 	}
@@ -235,13 +235,13 @@ func (o *GridOptimizer) Run(executor Executor, configJson []byte) (map[string][]
 	o.CurrentParams = make([]interface{}, len(o.Config.Matrix))
 
 	var valueFunctions = map[string]MetricValueFunc{
-		"totalProfit":     TotalProfitMetricValueFunc,
-		"totalVolume":     TotalVolume,
-		"totalEquityDiff": TotalEquityDiff,
-		"profitFactor":    ProfitFactorMetricValueFunc,
-		"winningRatio":    WinningRatioFunc,
-		"maxDropDown":     MaxDropDownFunc,
-		"RecoveryFactor":  RecoveryFactorFunc,
+		"totalProfit":            TotalProfitMetricValueFunc,
+		"totalVolume":            TotalVolume,
+		"totalEquityDiff":        TotalEquityDiff,
+		"profitFactor":           ProfitFactorMetricValueFunc,
+		"winningRatio":           WinningRatioFunc,
+		"maximumConsecutiveLoss": MaximumConsecutiveLossFunc,
+		"RecoveryFactor":         RecoveryFactorFunc,
 	}
 	var metrics = map[string][]Metric{}
 

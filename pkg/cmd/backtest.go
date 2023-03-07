@@ -531,7 +531,9 @@ var BacktestCmd = &cobra.Command{
 				winningRatio := tradeState.WinningRatio
 				intervalProfits := tradeState.IntervalProfits[types.Interval1d]
 				maximumConsecutiveLoss := tradeState.MaximumConsecutiveLoss
-				symbolReport, err := createSymbolReport(userConfig, session, symbol, trades.Trades, intervalProfits, profitFactor, winningRatio, maximumConsecutiveLoss)
+				maxDropDown := tradeState.MaxDropDown
+				symbolReport, err := createSymbolReport(userConfig, session, symbol, trades.Trades,
+					intervalProfits, profitFactor, winningRatio, maximumConsecutiveLoss, maxDropDown)
 				if err != nil {
 					return err
 				}
@@ -610,7 +612,7 @@ var BacktestCmd = &cobra.Command{
 }
 
 func createSymbolReport(userConfig *bbgo.Config, session *bbgo.ExchangeSession, symbol string, trades []types.Trade, intervalProfit *types.IntervalProfitCollector,
-	profitFactor, winningRatio fixedpoint.Value, maximumConsecutiveLoss fixedpoint.Value) (
+	profitFactor, winningRatio fixedpoint.Value, maximumConsecutiveLoss fixedpoint.Value, maxDropDown fixedpoint.Value) (
 	*backtest.SessionSymbolReport,
 	error,
 ) {
@@ -664,6 +666,7 @@ func createSymbolReport(userConfig *bbgo.Config, session *bbgo.ExchangeSession, 
 
 		MaximumConsecutiveLoss: maximumConsecutiveLoss,
 		RecoveryFactor:         recoveryFactor,
+		MaxDropDown:            maxDropDown,
 	}
 
 	for _, s := range session.Subscriptions {

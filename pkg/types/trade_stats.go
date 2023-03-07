@@ -193,6 +193,11 @@ type TradeStats struct {
 	// MaximumConsecutiveLoss - ($) the longest series of losing trades and their total loss;
 	MaximumConsecutiveLoss fixedpoint.Value `json:"maximumConsecutiveLoss" yaml:"maximumConsecutiveLoss"`
 
+	MaxDropDown fixedpoint.Value `json:"maxDropDown" yaml:"maxDropDown"`
+
+	HighestTotalNetProfit fixedpoint.Value
+	InitialCapital        fixedpoint.Value
+
 	lastOrderID        uint64
 	consecutiveSide    int
 	consecutiveCounter int
@@ -206,6 +211,10 @@ func NewTradeStats(symbol string) *TradeStats {
 // Set IntervalProfitCollector explicitly to enable the sharpe ratio calculation
 func (s *TradeStats) SetIntervalProfitCollector(c *IntervalProfitCollector) {
 	s.IntervalProfits[c.Interval] = c
+}
+
+func (s *TradeStats) SetInitialCapital(capital fixedpoint.Value) {
+	s.InitialCapital = capital
 }
 
 func (s *TradeStats) CsvHeader() []string {
@@ -236,6 +245,7 @@ func (s *TradeStats) CsvRecords() [][]string {
 			s.LargestLossTrade.String(),
 			strconv.Itoa(s.MaximumConsecutiveWins),
 			strconv.Itoa(s.MaximumConsecutiveLosses),
+			s.MaxDropDown.String(),
 		},
 	}
 }
@@ -379,6 +389,19 @@ func (s *TradeStats) add(profit *Profit) {
 	s.TotalNetProfit = s.TotalNetProfit.Add(pnl)
 	s.ProfitFactor = s.GrossProfit.Div(s.GrossLoss.Abs())
 
+	if s.TotalNetProfit > s.HighestTotalNetProfit {
+		s.HighestTotalNetProfit = s.TotalNetProfit
+	} else {
+		capital := s.InitialCapital
+		denominator := capital.Add(s.HighestTotalNetProfit)
+		numerator := capital.Add(s.TotalNetProfit)
+		percent := numerator.Div(denominator)
+		dropDown := fixedpoint.One.Sub(percent)
+		if dropDown > s.MaxDropDown {
+			s.MaxDropDown = dropDown
+		}
+	}
+
 	s.updateWinningRatio()
 }
 
@@ -416,6 +439,7 @@ func (s *TradeStats) BriefString() string {
 		MaximumConsecutiveLosses: s.MaximumConsecutiveLosses,
 		MaximumConsecutiveProfit: s.MaximumConsecutiveProfit,
 		MaximumConsecutiveLoss:   s.MaximumConsecutiveLoss,
+		MaxDropDown:              s.MaxDropDown,
 	})
 	return string(out)
 }

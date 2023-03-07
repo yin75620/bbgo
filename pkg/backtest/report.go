@@ -89,6 +89,7 @@ type SessionSymbolReport struct {
 
 	MaximumConsecutiveLoss fixedpoint.Value `json:"maximumConsecutiveLoss"`
 	RecoveryFactor         fixedpoint.Value `json:"recoveryFactor"`
+	MaxDropDown            fixedpoint.Value `json:"maxDropDown"`
 }
 
 func (r *SessionSymbolReport) InitialEquityValue() fixedpoint.Value {
