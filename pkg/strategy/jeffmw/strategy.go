@@ -1,4 +1,4 @@
-package jeff1
+package jeffmw
 
 import (
 	"context"
@@ -111,20 +111,20 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 	var smaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
 	sma := standardIndicatorSet.SMA(smaIw)
 
-	var highXmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
-	highXma := standardIndicatorSet.XMA(highXmaIw, "high", func(k types.KLine) float64 {
-		return k.High.Float64()
-	})
-	fmt.Println(highXma)
+	// var LowXmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: 1}
+	// lowXMA := standardIndicatorSet.XMA(LowXmaIw, "lowXmaIw", func(k types.KLine) float64 {
+	// 	return k.Low.Float64()
+	// })
+	// fmt.Println(lowXMA)
 
-	var spoorVolXmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
-	spoorVol := standardIndicatorSet.XMA(spoorVolXmaIw, "spoorVol", func(k types.KLine) float64 {
-		//上影線下影線各算兩次，實Ｋ算一次，價格變化總和/最低價，算出波動率，成交量/波動率 /100，可知一個1%波動率，要多少成交量
-		//越大越穩
-		onePercentSpoorRatio := k.GetOnePercentSpoorVol()
-		return onePercentSpoorRatio.Float64()
-	})
-	fmt.Println(spoorVol)
+	// var spoorVolXmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
+	// spoorVol := standardIndicatorSet.XMA(spoorVolXmaIw, "spoorVol", func(k types.KLine) float64 {
+	// 	//上影線下影線各算兩次，實Ｋ算一次，價格變化總和/最低價，算出波動率，成交量/波動率 /100，可知一個1%波動率，要多少成交量
+	// 	//越大越穩
+	// 	onePercentSpoorRatio := k.GetOnePercentSpoorVol()
+	// 	return onePercentSpoorRatio.Float64()
+	// })
+	// fmt.Println(spoorVol)
 
 	s.positionKline = types.KLine{}
 	usdtBalance, _ := session.Account.Balance("USDT")
