@@ -2,6 +2,9 @@
 sessions:
   binance:
     exchange: binance
+    margin: true
+    isolatedMargin: true
+    isolatedMarginSymbol: BTCUSDT
     envVarPrefix: binance
 
   #max:
@@ -123,3 +126,9 @@ exchangeStrategies:
     
     
     overAmplificationPercent: 11 # 超過2.3%剔除=0.023
+
+persistence:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    db: 0
