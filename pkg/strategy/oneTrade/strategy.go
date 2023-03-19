@@ -66,11 +66,12 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 			//執行購買
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-				Symbol:   kline.Symbol,
-				Market:   market,
-				Side:     types.SideTypeBuy,
-				Type:     types.OrderTypeMarket,
-				Quantity: quantity,
+				Symbol:           kline.Symbol,
+				Market:           market,
+				Side:             types.SideTypeBuy,
+				Type:             types.OrderTypeMarket,
+				Quantity:         quantity,
+				MarginSideEffect: types.SideEffectTypeMarginBuy,
 			})
 			if err != nil {
 				log.WithError(err).Error("subit buy order error")
@@ -80,11 +81,12 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		} else {
 
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-				Symbol:   kline.Symbol,
-				Market:   market,
-				Side:     types.SideTypeSell,
-				Type:     types.OrderTypeMarket,
-				Quantity: s.lastOrderQuantity,
+				Symbol:           kline.Symbol,
+				Market:           market,
+				Side:             types.SideTypeSell,
+				Type:             types.OrderTypeMarket,
+				Quantity:         s.lastOrderQuantity,
+				MarginSideEffect: types.SideEffectTypeAutoRepay,
 			})
 			if err != nil {
 				log.WithError(err).Error("subit sell order error")
