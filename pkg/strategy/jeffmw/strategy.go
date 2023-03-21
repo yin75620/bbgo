@@ -36,6 +36,7 @@ type Strategy struct {
 	Leverage            fixedpoint.Value `json:"leverage"`   // if 0 => 1
 	WinLeftCount        int              `json:"winLeftCount"`
 	WinRightCount       int              `json:"winRightCount"`
+	SumWidthMin         int              `json:"sumWidthMin"`
 	WinMaxMul           int              `json:"winMaxMul"`
 	AllowRightUpPercent float64          `json:"allowRightUpPercent"` //0.012就表示右邊低點往上1.012倍後會比左邊低點高
 	IsCompoundOrder     bool             `json:"isCompoundOrder"`
@@ -252,7 +253,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 		killedKinfos := last.KilledKInfos
 		rangedKInfos := killedKinfos.GetWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
-		tempKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
+		lowerRightKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
+		tempKInfos := lowerRightKInfos.GetSumWidthLargeThan(s.SumWidthMin)
 
 		if tempKInfos.Length() != 0 { // canBuy
 			s.lowerHighTimes = 0

@@ -137,6 +137,22 @@ func (s *KInfos) GetHighLoseLeftIndexLargerThan(minIndex int) KInfos {
 	return res
 }
 
+func (s *KInfos) GetSumWidthLargeThan(widthMin int) KInfos {
+	length := len(*s)
+	res := KInfos{}
+	if length <= 0 {
+		return res
+	}
+
+	for _, v := range *s {
+		sum := v.HighLoseLeftIndex + v.HighLoseRightIndex
+		if sum > widthMin {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
 //go:generate callbackgen -type JWMChart
 type JWMChart struct {
 	types.SeriesBase

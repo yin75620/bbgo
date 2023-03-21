@@ -58,8 +58,8 @@ backtest:
   # startTime: "2017-09-01"
   # endTime: "2022-02-01"
 
-  startTime: "2022-02-01"
-  endTime: "2023-02-28"
+  startTime: "2023-02-01"
+  endTime: "2023-03-21"
 
   
   symbols:
@@ -116,6 +116,7 @@ exchangeStrategies:
     upperShadowRatio: 0.65 # 0.9表示上影線小於0.1
     winLeftCount: 51
     winRightCount: 286
+    sumWidthMin: 0
     winMaxMul: 50 # 5
 
     allowRightUpPercent: 0.01
