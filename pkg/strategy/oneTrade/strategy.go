@@ -64,33 +64,35 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 			orderUSD := fixedpoint.NewFromFloat(100)
 			quantity := orderUSD.Div(kline.Close)
 
+			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
+				Symbol:           kline.Symbol,
+				Market:           market,
+				Side:             types.SideTypeSell,
+				Type:             types.OrderTypeMarket,
+				Quantity:         quantity,
+				MarginSideEffect: types.SideEffectTypeMarginBuy,
+			})
+			if err != nil {
+				log.WithError(err).Error("subit sell order error")
+			}
+
+			s.positionKline = kline
+			s.lastOrderQuantity = quantity
+		} else {
+
 			//執行購買
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
 				Symbol:           kline.Symbol,
 				Market:           market,
 				Side:             types.SideTypeBuy,
 				Type:             types.OrderTypeMarket,
-				Quantity:         quantity,
-				MarginSideEffect: types.SideEffectTypeMarginBuy,
-			})
-			if err != nil {
-				log.WithError(err).Error("subit buy order error")
-			}
-			s.positionKline = kline
-			s.lastOrderQuantity = quantity
-		} else {
-
-			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-				Symbol:           kline.Symbol,
-				Market:           market,
-				Side:             types.SideTypeSell,
-				Type:             types.OrderTypeMarket,
 				Quantity:         s.lastOrderQuantity,
 				MarginSideEffect: types.SideEffectTypeAutoRepay,
 			})
 			if err != nil {
-				log.WithError(err).Error("subit sell order error")
+				log.WithError(err).Error("subit buy order error")
 			}
+
 			s.positionKline = types.KLine{}
 			s.lastOrderQuantity = 0
 		}

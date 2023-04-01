@@ -2,6 +2,9 @@
 sessions:
   binance:
     exchange: binance
+    margin: true
+    isolatedMargin: true
+    isolatedMarginSymbol: BTCUSDT
     envVarPrefix: binance
 
 riskControls:
@@ -23,15 +26,15 @@ riskControls:
 backtest:
 
   startTime: "2022-07-13T12:25:00"
-  endTime: "2022-07-13T12:40:00"
+  endTime: "2022-07-13T12:50:00"
 
   symbols:
     - BTCUSDT
   sessions: [binance]
   accounts:
     binance:
-      makerFeeRate: 0.04%
-      takerFeeRate: 0.04%
+      makerFeeRate: 0.075%
+      takerFeeRate: 0.075%
       balances:
         BTC: 0.0
         ETH: 0.0
@@ -44,7 +47,7 @@ exchangeStrategies:
   oneTrade:
     symbol: BTCUSDT
     movingAverage:
-      interval: 5m
+      interval: 1m
       window: 99
     
     
