@@ -251,7 +251,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 			return
 		}
 
-		killedKinfos := last.KilledKInfos
+		killedKinfos := last.WKilledKInfos
 		rangedKInfos := killedKinfos.GetWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
 		lowerRightKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
 		tempKInfos := lowerRightKInfos.GetSumWidthLargeThan(s.SumWidthMin)

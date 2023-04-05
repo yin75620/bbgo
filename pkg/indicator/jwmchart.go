@@ -17,7 +17,13 @@ type KInfo struct {
 	K types.KLine // include id, high, low,
 
 	//IsKillTopKline bool
-	KilledKInfos KInfos
+	WKilledKInfos KInfos
+
+	LowLoseLeftIndex  int              //低點往左數，第幾個位置低點比人高，第一根就是1
+	LowLoseRightIndex int              //低點往右數，第幾個位置低點比人高
+	LeftHighestPrice  fixedpoint.Value //中央低點往左的最高點
+	RightHighestPrice fixedpoint.Value //中央低點往右的最高點
+	MKilledKIinfos    KInfos
 }
 
 type KBunch struct {
@@ -173,7 +179,12 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 
 	kinfo := KInfo{}
 	kinfo.K = currentKline
+	inc.setWChart(&kinfo, currentKline.High)
 
+	inc.Values = append(inc.Values, kinfo)
+}
+
+func (inc *JWMChart) setWChart(kinfo *KInfo, currentHighPrice fixedpoint.Value) {
 	maxIndex := inc.Values.Length() - 1
 	jumpSize := 1
 	killedKInfos := KInfos{}
@@ -188,7 +199,7 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 		}
 
 		// 輸贏index處理
-		if currentKline.High < v.K.High {
+		if currentHighPrice < v.K.High {
 			kinfo.HighLoseLeftIndex += 1
 			break
 		}
@@ -214,9 +225,11 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 	//topKInfo := tempKInfos.GetSumLoseTop()
 
 	//kinfo.IsKillTopKline = topKInfo.HighLoseRightIndex != 0
-	kinfo.KilledKInfos = killedKInfos
+	kinfo.WKilledKInfos = killedKInfos
+}
 
-	inc.Values = append(inc.Values, kinfo)
+func (inc *JWMChart) setMChart(kinfo *KInfo, currentHighPrice fixedpoint.Value) {
+
 }
 
 func (inc *JWMChart) Index(i int) KInfo {
