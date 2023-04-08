@@ -9,21 +9,26 @@ import (
 )
 
 type KInfo struct {
+	K types.KLine // include id, high, low,
+
 	HighLoseLeftIndex  int              //高點往左數，在第幾個位置高點比人低，第一根K線就是1
 	HighLoseRightIndex int              //高點往右數，在第幾個位置高點比人低
 	LeftLowestPrice    fixedpoint.Value //高點往左的最底點價格
 	RightLowestPrice   fixedpoint.Value //高點往右的最底點價格
-	//LowLoseIndex       int         //低點往左數，在第幾個位置低點比人高
-	K types.KLine // include id, high, low,
-
-	//IsKillTopKline bool
-	WKilledKInfos KInfos
+	WKilledKInfos      KInfos
 
 	LowLoseLeftIndex  int              //低點往左數，第幾個位置低點比人高，第一根就是1
 	LowLoseRightIndex int              //低點往右數，第幾個位置低點比人高
 	LeftHighestPrice  fixedpoint.Value //中央低點往左的最高點
 	RightHighestPrice fixedpoint.Value //中央低點往右的最高點
-	MKilledKIinfos    KInfos
+	MKilledKInfos     KInfos
+}
+
+type KData struct {
+	LoseLeftIndex  int              //低點往左數，第幾個位置低點比人高，第一根就是1
+	LoseRightIndex int              //低點往右數，第幾個位置低點比人高
+	LeftCuspPrice  fixedpoint.Value //中央尖點往左的反向最高點
+	RightCuspPrice fixedpoint.Value //中央尖點往右的反向最高點
 }
 
 type KBunch struct {
@@ -66,22 +71,47 @@ func (s *KInfos) IndexWidth(i int, width int) KInfos {
 	return (*s)[leftSide : length-i-1]
 }
 
-func (s *KInfos) GetWidthRange(left int, right int, leftMax, rightMax int) KInfos {
+func (s *KInfos) GetWWidthRange(left int, right int, leftMax, rightMax int) KInfos {
+	return s.getWidthRange(func(v KInfo) bool {
+		return v.HighLoseLeftIndex > left && v.HighLoseRightIndex > right &&
+			v.HighLoseLeftIndex < leftMax && v.HighLoseRightIndex < rightMax
+	})
+}
+
+func (s *KInfos) GetMWidthRange(left int, right int, leftMax, rightMax int) KInfos {
+	return s.getWidthRange(func(v KInfo) bool {
+		return v.LowLoseLeftIndex > left && v.LowLoseRightIndex > right &&
+			v.LowLoseLeftIndex < leftMax && v.LowLoseRightIndex < rightMax
+	})
+}
+
+func (s *KInfos) getWidthRange(isInRange func(v KInfo) bool) KInfos {
 	length := len(*s)
 	if length <= 0 {
 		return *s
 	}
 	res := KInfos{}
 	for _, v := range *s {
-		if v.HighLoseLeftIndex > left && v.HighLoseRightIndex > right &&
-			v.HighLoseLeftIndex < leftMax && v.HighLoseRightIndex < rightMax {
+		if isInRange(v) {
 			res = append(res, v)
 		}
 	}
 	return res
 }
 
-func (s *KInfos) GetSumLoseTop() KInfo {
+func (s *KInfos) GetWSumLoseTop() KInfo {
+	return s.getSumLoseTop(func(k KInfo) int {
+		return k.HighLoseLeftIndex + k.HighLoseRightIndex
+	})
+}
+
+func (s *KInfos) GetMSumLoseTop() KInfo {
+	return s.getSumLoseTop(func(k KInfo) int {
+		return k.LowLoseLeftIndex + k.LowLoseRightIndex
+	})
+}
+
+func (s *KInfos) getSumLoseTop(sumFunc func(k KInfo) int) KInfo {
 	length := len(*s)
 	res := KInfo{}
 	if length <= 0 {
@@ -89,7 +119,7 @@ func (s *KInfos) GetSumLoseTop() KInfo {
 	}
 	sumLoseMax := 0
 	for _, v := range *s {
-		sum := v.HighLoseLeftIndex + v.HighLoseRightIndex
+		sum := sumFunc(v)
 		if sum > sumLoseMax {
 			sumLoseMax = sum
 			res = v
@@ -98,7 +128,19 @@ func (s *KInfos) GetSumLoseTop() KInfo {
 	return res
 }
 
-func (s *KInfos) GetSumLoseMin() KInfo {
+func (s *KInfos) GetWSumLoseMin() KInfo {
+	return s.getSumLoseMin(func(k KInfo) int {
+		return k.HighLoseLeftIndex + k.HighLoseRightIndex
+	})
+}
+
+func (s *KInfos) GetMSumLoseMin() KInfo {
+	return s.getSumLoseMin(func(k KInfo) int {
+		return k.LowLoseLeftIndex + k.LowLoseRightIndex
+	})
+}
+
+func (s *KInfos) getSumLoseMin(sumFunc func(k KInfo) int) KInfo {
 	length := len(*s)
 	res := KInfo{}
 	if length <= 0 {
@@ -106,7 +148,7 @@ func (s *KInfos) GetSumLoseMin() KInfo {
 	}
 	sumLoseMin := math.MaxInt32
 	for _, v := range *s {
-		sum := v.HighLoseLeftIndex + v.HighLoseRightIndex
+		sum := sumFunc(v)
 		if sum < sumLoseMin {
 			sumLoseMin = sum
 			res = v
@@ -180,6 +222,7 @@ func (inc *JWMChart) Update(currentKline types.KLine) {
 	kinfo := KInfo{}
 	kinfo.K = currentKline
 	inc.setWChart(&kinfo, currentKline.High)
+	inc.setMChart(&kinfo, currentKline.Low)
 
 	inc.Values = append(inc.Values, kinfo)
 }
@@ -218,18 +261,44 @@ func (inc *JWMChart) setWChart(kinfo *KInfo, currentHighPrice fixedpoint.Value) 
 	}
 
 	kinfo.LeftLowestPrice = lowestPrice
-	//tempKInfos := killedKInfos.GetWidthRange(inc.WinLeftCount, inc.WinRightCount, 10000, 10000)
-	//tempKInfos = tempKInfos.GetLeftLowerRight(inc.AllowRightUpPercent)
-
-	// 取出這次擊倒的最大KInfo
-	//topKInfo := tempKInfos.GetSumLoseTop()
-
-	//kinfo.IsKillTopKline = topKInfo.HighLoseRightIndex != 0
 	kinfo.WKilledKInfos = killedKInfos
 }
 
-func (inc *JWMChart) setMChart(kinfo *KInfo, currentHighPrice fixedpoint.Value) {
+func (inc *JWMChart) setMChart(kinfo *KInfo, currentLowPrice fixedpoint.Value) {
+	maxIndex := inc.Values.Length() - 1
+	jumpSize := 1
+	killedKInfos := KInfos{}
+	highestPrice := fixedpoint.Zero
+	// 比較整個數據
+	for i := maxIndex; i >= 0; i = i - jumpSize {
+		v := &inc.Values[i]
 
+		// 先計算是否更新最大值
+		if v.K.High > highestPrice {
+			highestPrice = v.K.High
+		}
+
+		// 輸贏index處理
+		if currentLowPrice > v.K.Low {
+			kinfo.LowLoseLeftIndex += 1
+			break
+		}
+
+		//把已經擊倒的K線數量設定在此處
+		v.LowLoseRightIndex = kinfo.LowLoseLeftIndex + 1
+		v.RightHighestPrice = highestPrice
+		killedKInfos = append(killedKInfos, *v)
+
+		jumpSize = v.LowLoseLeftIndex
+		kinfo.LowLoseLeftIndex += v.LowLoseLeftIndex
+		if v.LowLoseLeftIndex == 0 || kinfo.LowLoseLeftIndex >= maxIndex { //表示第一個 or 超過第一個
+			kinfo.LowLoseLeftIndex += 1
+			break
+		}
+	}
+
+	kinfo.LeftHighestPrice = highestPrice
+	kinfo.MKilledKInfos = killedKInfos
 }
 
 func (inc *JWMChart) Index(i int) KInfo {

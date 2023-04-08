@@ -252,7 +252,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		}
 
 		killedKinfos := last.WKilledKInfos
-		rangedKInfos := killedKinfos.GetWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
+		rangedKInfos := killedKinfos.GetWWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
 		lowerRightKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
 		tempKInfos := lowerRightKInfos.GetSumWidthLargeThan(s.SumWidthMin)
 
@@ -284,7 +284,7 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 				quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
 
 				//設定 Tag資訊
-				tempKInfo := tempKInfos.GetSumLoseMin()
+				tempKInfo := tempKInfos.GetWSumLoseMin()
 				tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.HighLoseLeftIndex, tempKInfo.HighLoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
 
 				//執行購買
