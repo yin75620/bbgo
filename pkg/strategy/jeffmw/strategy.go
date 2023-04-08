@@ -9,6 +9,7 @@ import (
 
 	"github.com/c9s/bbgo/pkg/bbgo"
 	"github.com/c9s/bbgo/pkg/fixedpoint"
+	"github.com/c9s/bbgo/pkg/indicator"
 	"github.com/c9s/bbgo/pkg/types"
 )
 
@@ -135,6 +136,46 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 	usdtBalance, _ := session.Account.Balance("USDT")
 	s.configUsdValue = usdtBalance.Total()
 
+	repeater := Repeater{
+		jwmchart:      jwmchart,
+		vma:           vma,
+		sma:           sma,
+		ctx:           ctx,
+		orderExecutor: orderExecutor,
+		session:       session,
+		market:        market}
+
+	// skip k-lines from other symbols
+	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
+
+		s.wStrategy(kline, repeater)
+
+	}))
+
+	return nil
+}
+
+type Repeater struct {
+	jwmchart      *indicator.JWMChart
+	vma           *indicator.VMA
+	sma           *indicator.SMA
+	ctx           context.Context
+	orderExecutor bbgo.OrderExecutor
+	session       *bbgo.ExchangeSession
+	market        types.Market
+}
+
+func (s *Strategy) wStrategy(kline types.KLine, repeater Repeater) {
+	jwmchart := repeater.jwmchart
+	vma := repeater.vma
+	sma := repeater.sma
+	session := repeater.session
+	ctx := repeater.ctx
+	orderExecutor := repeater.orderExecutor
+	market := repeater.market
+
+	last := jwmchart.Last()
+
 	// prepare function to sell position
 	SellFunc := func(kline types.KLine) {
 		_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
@@ -152,165 +193,155 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		s.klineLow = fixedpoint.Zero
 	}
 
-	// skip k-lines from other symbols
-	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
+	if s.HasPosition() { //prepare sell
 
-		//fmt.Println(kline.StartTime)
-
-		last := jwmchart.Last()
-		if s.HasPosition() { //prepare sell
-
-			//止損策略
-			// if kline.Close < s.positionKline.Low-s.positionKline.GetChange()*2 {
-			// 	//SellFunc(kline)
-			// 	return
-			// }
-
-			if last.HighLoseLeftIndex == 1 {
-				s.lowerHighTimes += 1
-			}
-
-			// if kline.Close > s.positionKline.High && kline.Volume < s.positionKline.Volume {
-			// 	SellFunc(kline)
-			// 	return
-			// }
-
-			if s.lowerHighTimes > s.LimitLowerHighTimes ||
-				kline.Close.Sub(s.klineLow) < fixedpoint.Zero {
-				SellFunc(kline)
-				return
-			}
-		}
-
-		// Buy Check
-
-		// 軌跡波動量超越均量特定比例
-		//spoorRate := kline.GetOnePercentSpoorVol().Div(fixedpoint.NewFromFloat(spoorVol.Last()))
-		//if spoorRate.Sub(fixedpoint.NewFromFloat(1.08)) > fixedpoint.Zero {
-		//	return
-		//}
-
-		//成交量的/超越均量指定比例
-		if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVolScale) < fixedpoint.Zero {
-			return
-		}
-
-		//成交量比前一根高出指定比例
-		if kline.Volume.Div(jwmchart.Index(1).K.Volume).Sub(s.GainVolPreDayScale) < fixedpoint.Zero {
-			return
-		}
-
-		//找到輸掉的那一根Ｋ線，再往前N跟，如果有出現尖頭，也不交易
-		if s.HighLoseLeftIndexMin != 0 {
-			leftSideKinfos := jwmchart.IndexWidth(last.HighLoseLeftIndex, s.ForwardWidth)
-			topKinfos := leftSideKinfos.GetHighLoseLeftIndexLargerThan(s.HighLoseLeftIndexMin)
-
-			if len(topKinfos) != 0 {
-				return
-			}
-		}
-
-		//成交量過大於均量N倍剔除
-		//maxRatio := 14.0 // default as 9999
-		//if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(maxRatio)) > fixedpoint.Zero {
-		//	return
-		//}
-
-		// if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(4.3)) < fixedpoint.Zero {
+		//止損策略
+		// if kline.Close < s.positionKline.Low-s.positionKline.GetChange()*2 {
+		// 	//SellFunc(kline)
 		// 	return
 		// }
 
-		//
-		if kline.Close.Div(fixedpoint.NewFromFloat(sma.Index(1))).Sub(s.IncreasePriceScale) < fixedpoint.Zero {
-			return
+		if last.HighLoseLeftIndex == 1 {
+			s.lowerHighTimes += 1
 		}
 
-		//K線本身品質檢查
-		if kline.GetAmplification().Sub(s.AmplificationPercent) < fixedpoint.Zero {
-			//波動超過X
+		// if kline.Close > s.positionKline.High && kline.Volume < s.positionKline.Volume {
+		// 	SellFunc(kline)
+		// 	return
+		// }
+
+		if s.lowerHighTimes > s.LimitLowerHighTimes ||
+			kline.Close.Sub(s.klineLow) < fixedpoint.Zero {
+			SellFunc(kline)
 			return
 		}
+	}
 
-		if kline.GetAmplification().Sub(s.OverAmplificationPercent) > fixedpoint.Zero {
-			//波動太超過，就剔除
+	// Buy Check
+
+	// 軌跡波動量超越均量特定比例
+	//spoorRate := kline.GetOnePercentSpoorVol().Div(fixedpoint.NewFromFloat(spoorVol.Last()))
+	//if spoorRate.Sub(fixedpoint.NewFromFloat(1.08)) > fixedpoint.Zero {
+	//	return
+	//}
+
+	//成交量的/超越均量指定比例
+	if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVolScale) < fixedpoint.Zero {
+		return
+	}
+
+	//成交量比前一根高出指定比例
+	if kline.Volume.Div(jwmchart.Index(1).K.Volume).Sub(s.GainVolPreDayScale) < fixedpoint.Zero {
+		return
+	}
+
+	//找到輸掉的那一根Ｋ線，再往前N跟，如果有出現尖頭，也不交易
+	if s.HighLoseLeftIndexMin != 0 {
+		leftSideKinfos := jwmchart.IndexWidth(last.HighLoseLeftIndex, s.ForwardWidth)
+		topKinfos := leftSideKinfos.GetWLoseLeftIndexLargerThan(s.HighLoseLeftIndexMin)
+
+		if len(topKinfos) != 0 {
 			return
 		}
+	}
 
-		// 實K要超過特定比例
-		if kline.GetThickness().Sub(s.ChangeRatio) < fixedpoint.Zero {
-			return
-		}
+	//成交量過大於均量N倍剔除
+	//maxRatio := 14.0 // default as 9999
+	//if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(maxRatio)) > fixedpoint.Zero {
+	//	return
+	//}
 
-		// 向上力道要超過特定比例
-		if kline.GetUpperPowerRatio().Sub(s.UpperPowerRatio) < fixedpoint.Zero {
-			return
-		}
+	// if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(fixedpoint.NewFromFloat(4.3)) < fixedpoint.Zero {
+	// 	return
+	// }
 
-		//上影線要小於特定比例
-		if fixedpoint.One.Sub(kline.GetUpperShadowRatio()).Sub(s.UpperShadowRatio) < fixedpoint.Zero {
-			return
-		}
+	//
+	if kline.Close.Div(fixedpoint.NewFromFloat(sma.Index(1))).Sub(s.IncreasePriceScale) < fixedpoint.Zero {
+		return
+	}
 
-		killedKinfos := last.WKilledKInfos
-		rangedKInfos := killedKinfos.GetWWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
-		lowerRightKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
-		tempKInfos := lowerRightKInfos.GetSumWidthLargeThan(s.SumWidthMin)
+	//K線本身品質檢查
+	if kline.GetAmplification().Sub(s.AmplificationPercent) < fixedpoint.Zero {
+		//波動超過X
+		return
+	}
 
-		if tempKInfos.Length() != 0 { // canBuy
-			s.lowerHighTimes = 0
+	if kline.GetAmplification().Sub(s.OverAmplificationPercent) > fixedpoint.Zero {
+		//波動太超過，就剔除
+		return
+	}
 
-			if !s.HasPosition() {
+	// 實K要超過特定比例
+	if kline.GetThickness().Sub(s.ChangeRatio) < fixedpoint.Zero {
+		return
+	}
 
-				// order
-				orderUSD := s.InitialUsd
+	// 向上力道要超過特定比例
+	if kline.GetUpperPowerRatio().Sub(s.UpperPowerRatio) < fixedpoint.Zero {
+		return
+	}
 
-				// money check
-				usdtBalance, _ := session.Account.Balance("USDT")
-				revenue := usdtBalance.Total().Sub(s.configUsdValue)
-				totalAvalableUSD := orderUSD.Add(revenue)
+	//上影線要小於特定比例
+	if fixedpoint.One.Sub(kline.GetUpperShadowRatio()).Sub(s.UpperShadowRatio) < fixedpoint.Zero {
+		return
+	}
 
-				if totalAvalableUSD < 0 {
-					//money not enough
-					return
-				}
+	killedKinfos := last.WKilledKInfos
+	rangedKInfos := killedKinfos.GetWWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
+	lowerRightKInfos := rangedKInfos.GetWLeftLowerRight(s.AllowRightUpPercent)
+	tempKInfos := lowerRightKInfos.GetWSumWidthLargeThan(s.SumWidthMin)
 
-				if s.IsCompoundOrder {
-					orderUSD = totalAvalableUSD
-				}
+	if tempKInfos.Length() != 0 { // canBuy
+		s.lowerHighTimes = 0
 
-				//計算要下單的數量
-				orderUSD = orderUSD.Mul(s.Leverage)
+		if !s.HasPosition() {
 
-				quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
+			// order
+			orderUSD := s.InitialUsd
 
-				//設定 Tag資訊
-				tempKInfo := tempKInfos.GetWSumLoseMin()
-				tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.HighLoseLeftIndex, tempKInfo.HighLoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
+			// money check
+			usdtBalance, _ := session.Account.Balance("USDT")
+			revenue := usdtBalance.Total().Sub(s.configUsdValue)
+			totalAvalableUSD := orderUSD.Add(revenue)
 
-				//執行購買
-				_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-					Symbol:   kline.Symbol,
-					Market:   market,
-					Side:     types.SideTypeBuy,
-					Type:     types.OrderTypeMarket,
-					Quantity: quantity,
-					Tag:      tag,
-				})
-				if err != nil {
-					log.WithError(err).Error("subit buy order error")
-				}
-				s.positionKline = kline
-				s.lastOrderQuantity = quantity
-				s.klineLow = kline.Low
-
-			} else {
-				log.Infoln("already has position")
+			if totalAvalableUSD < 0 {
+				//money not enough
+				return
 			}
+
+			if s.IsCompoundOrder {
+				orderUSD = totalAvalableUSD
+			}
+
+			//計算要下單的數量
+			orderUSD = orderUSD.Mul(s.Leverage)
+
+			quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
+
+			//設定 Tag資訊
+			tempKInfo := tempKInfos.GetWSumLoseMin()
+			tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.HighLoseLeftIndex, tempKInfo.HighLoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
+
+			//執行購買
+			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
+				Symbol:   kline.Symbol,
+				Market:   market,
+				Side:     types.SideTypeBuy,
+				Type:     types.OrderTypeMarket,
+				Quantity: quantity,
+				Tag:      tag,
+			})
+			if err != nil {
+				log.WithError(err).Error("subit buy order error")
+			}
+			s.positionKline = kline
+			s.lastOrderQuantity = quantity
+			s.klineLow = kline.Low
+
+		} else {
+			log.Infoln("already has position")
 		}
-
-	}))
-
-	return nil
+	}
 }
 
 // InstanceID returns the instance identifier from the current grid configuration parameters

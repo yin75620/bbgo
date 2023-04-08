@@ -157,7 +157,7 @@ func (s *KInfos) getSumLoseMin(sumFunc func(k KInfo) int) KInfo {
 	return res
 }
 
-func (s *KInfos) GetLeftLowerRight(allowRightUpPercent float64) KInfos {
+func (s *KInfos) GetWLeftLowerRight(allowRightUpPercent float64) KInfos {
 	length := len(*s)
 	if length <= 0 {
 		return *s
@@ -171,7 +171,21 @@ func (s *KInfos) GetLeftLowerRight(allowRightUpPercent float64) KInfos {
 	return res
 }
 
-func (s *KInfos) GetHighLoseLeftIndexLargerThan(minIndex int) KInfos {
+func (s *KInfos) GetMLeftLowerRight(allowRightUpPercent float64) KInfos {
+	length := len(*s)
+	if length <= 0 {
+		return *s
+	}
+	res := KInfos{}
+	for _, v := range *s {
+		if v.LeftHighestPrice < v.RightHighestPrice.Mul(fixedpoint.NewFromFloat(1+allowRightUpPercent)) {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func (s *KInfos) GetWLoseLeftIndexLargerThan(minIndex int) KInfos {
 	length := len(*s)
 	if length <= 0 {
 		return *s
@@ -185,7 +199,21 @@ func (s *KInfos) GetHighLoseLeftIndexLargerThan(minIndex int) KInfos {
 	return res
 }
 
-func (s *KInfos) GetSumWidthLargeThan(widthMin int) KInfos {
+func (s *KInfos) GetMLoseLeftIndexLargerThan(minIndex int) KInfos {
+	length := len(*s)
+	if length <= 0 {
+		return *s
+	}
+	res := KInfos{}
+	for _, v := range *s {
+		if v.LowLoseLeftIndex > minIndex && v.LowLoseRightIndex == 0 {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func (s *KInfos) GetWSumWidthLargeThan(widthMin int) KInfos {
 	length := len(*s)
 	res := KInfos{}
 	if length <= 0 {
@@ -194,6 +222,22 @@ func (s *KInfos) GetSumWidthLargeThan(widthMin int) KInfos {
 
 	for _, v := range *s {
 		sum := v.HighLoseLeftIndex + v.HighLoseRightIndex
+		if sum > widthMin {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+func (s *KInfos) GetMSumWidthLargeThan(widthMin int) KInfos {
+	length := len(*s)
+	res := KInfos{}
+	if length <= 0 {
+		return res
+	}
+
+	for _, v := range *s {
+		sum := v.LowLoseLeftIndex + v.LowLoseRightIndex
 		if sum > widthMin {
 			res = append(res, v)
 		}
