@@ -227,11 +227,13 @@ func (s *Strategy) wStrategy(kline types.KLine, repeater Repeater) {
 
 	//成交量的/超越均量指定比例
 	if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVolScale) < fixedpoint.Zero {
+		logrus.Debug("未達成-成交量的/超越均量指定比例")
 		return
 	}
 
 	//成交量比前一根高出指定比例
 	if kline.Volume.Div(jwmchart.Index(1).K.Volume).Sub(s.GainVolPreDayScale) < fixedpoint.Zero {
+		logrus.Debug("未達成-成交量比前一根高出指定比例")
 		return
 	}
 
@@ -241,6 +243,7 @@ func (s *Strategy) wStrategy(kline types.KLine, repeater Repeater) {
 		topKinfos := leftSideKinfos.GetWLoseLeftIndexLargerThan(s.HighLoseLeftIndexMin)
 
 		if len(topKinfos) != 0 {
+			logrus.Debug("未達成-找到輸掉的那一根Ｋ線")
 			return
 		}
 	}
@@ -257,32 +260,38 @@ func (s *Strategy) wStrategy(kline types.KLine, repeater Repeater) {
 
 	//
 	if kline.Close.Div(fixedpoint.NewFromFloat(sma.Index(1))).Sub(s.IncreasePriceScale) < fixedpoint.Zero {
+		logrus.Debug("未達成-IncreasePriceScale")
 		return
 	}
 
 	//K線本身品質檢查
 	if kline.GetAmplification().Sub(s.AmplificationPercent) < fixedpoint.Zero {
 		//波動超過X
+		logrus.Debug("未達成-波動超過X")
 		return
 	}
 
 	if kline.GetAmplification().Sub(s.OverAmplificationPercent) > fixedpoint.Zero {
 		//波動太超過，就剔除
+		logrus.Debug("未達成-波動平穩，就剔除")
 		return
 	}
 
 	// 實K要超過特定比例
 	if kline.GetThickness().Sub(s.ChangeRatio) < fixedpoint.Zero {
+		logrus.Debug("未達成-實K要超過特定比例")
 		return
 	}
 
 	// 向上力道要超過特定比例
 	if kline.GetUpperPowerRatio().Sub(s.UpperPowerRatio) < fixedpoint.Zero {
+		logrus.Debug("未達成-向上力道要超過特定比例")
 		return
 	}
 
 	//上影線要小於特定比例
 	if fixedpoint.One.Sub(kline.GetUpperShadowRatio()).Sub(s.UpperShadowRatio) < fixedpoint.Zero {
+		logrus.Debug("未達成-上影線要小於特定比例")
 		return
 	}
 
