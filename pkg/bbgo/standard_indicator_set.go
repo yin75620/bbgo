@@ -199,6 +199,19 @@ func (s *StandardIndicatorSet) JWMChart(iw types.IntervalWindow) *indicator.JWMC
 	return inc.(*indicator.JWMChart)
 }
 
+func (s *StandardIndicatorSet) JMChart(iw types.IntervalWindow) *indicator.JMChart {
+
+	inc := s.allocateSimpleIndicator(
+		&indicator.JMChart{IntervalWindow: iw}, iw, "jmchart")
+	return inc.(*indicator.JMChart)
+}
+func (s *StandardIndicatorSet) JWChart(iw types.IntervalWindow) *indicator.JWChart {
+
+	inc := s.allocateSimpleIndicator(
+		&indicator.JWChart{IntervalWindow: iw}, iw, "jwchart")
+	return inc.(*indicator.JWChart)
+}
+
 func (s *StandardIndicatorSet) XMA(iw types.IntervalWindow, name string, klinePart indicator.KlinePartFunc) *indicator.XMA {
 	inc := s.allocateSimpleIndicator(&indicator.XMA{IntervalWindow: iw, KlinePart: klinePart}, iw, "xma"+name)
 	return inc.(*indicator.XMA)

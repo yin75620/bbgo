@@ -33,8 +33,8 @@ type WChartTactic struct {
 
 	OverAmplificationPercent fixedpoint.Value `json:"overAmplificationPercent"` //小於
 
-	ForwardWidth         int `json:"ForwardWidth"`
-	HighLoseLeftIndexMin int `json:"highLoseLeftIndexMin"`
+	ForwardWidth     int `json:"ForwardWidth"`
+	LoseLeftIndexMin int `json:"LoseLeftIndexMin"`
 
 	// start info
 	configUsdValue    fixedpoint.Value
@@ -42,13 +42,15 @@ type WChartTactic struct {
 	lowerHighTimes    int
 	lastOrderQuantity fixedpoint.Value
 	klineLow          fixedpoint.Value
+
+	repeater *Repeater
 }
 
 func NewWChartTactic() *WChartTactic {
 	return &WChartTactic{}
 }
 
-func (wct *WChartTactic) Init(s *Strategy) {
+func (wct *WChartTactic) Init(s *Strategy, repeater *Repeater) {
 	if wct.WinMaxMul == 0 {
 		wct.WinMaxMul = 1000
 	}
@@ -58,11 +60,14 @@ func (wct *WChartTactic) Init(s *Strategy) {
 
 	wct.initialUsd = s.InitialUsd
 	wct.leverage = s.Leverage
+	wct.repeater = repeater
 
 }
 
-func (s *WChartTactic) OnKLineClosed(kline types.KLine, repeater Repeater) {
+func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
+	repeater := s.repeater
 	jwmchart := repeater.jwmchart
+	jwchart := repeater.jwchart
 	vma := repeater.vma
 	sma := repeater.sma
 	session := repeater.session
@@ -70,16 +75,17 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine, repeater Repeater) {
 	orderExecutor := repeater.orderExecutor
 	market := repeater.market
 
-	last := jwmchart.Last()
+	last := jwchart.Last()
 
 	// prepare function to sell position
 	SellFunc := func(kline types.KLine) {
 		_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-			Symbol:   kline.Symbol,
-			Market:   market,
-			Side:     types.SideTypeSell,
-			Type:     types.OrderTypeMarket,
-			Quantity: s.lastOrderQuantity,
+			Symbol:           kline.Symbol,
+			Market:           market,
+			Side:             types.SideTypeSell,
+			Type:             types.OrderTypeMarket,
+			Quantity:         s.lastOrderQuantity,
+			MarginSideEffect: types.SideEffectTypeAutoRepay,
 		})
 		if err != nil {
 			log.WithError(err).Error("subit sell order error")
@@ -97,7 +103,7 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine, repeater Repeater) {
 		// 	return
 		// }
 
-		if last.HighLoseLeftIndex == 1 {
+		if last.LoseLeftIndex == 1 {
 			s.lowerHighTimes += 1
 		}
 
@@ -134,9 +140,9 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine, repeater Repeater) {
 	}
 
 	//找到輸掉的那一根Ｋ線，再往前N跟，如果有出現尖頭，也不交易
-	if s.HighLoseLeftIndexMin != 0 {
-		leftSideKinfos := jwmchart.IndexWidth(last.HighLoseLeftIndex, s.ForwardWidth)
-		topKinfos := leftSideKinfos.GetWLoseLeftIndexLargerThan(s.HighLoseLeftIndexMin)
+	if s.LoseLeftIndexMin != 0 {
+		leftSideKinfos := jwmchart.IndexWidth(last.LoseLeftIndex, s.ForwardWidth)
+		topKinfos := leftSideKinfos.GetWLoseLeftIndexLargerThan(s.LoseLeftIndexMin)
 
 		if len(topKinfos) != 0 {
 			logrus.Debug("未達成-找到輸掉的那一根Ｋ線")
@@ -191,10 +197,10 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine, repeater Repeater) {
 		return
 	}
 
-	killedKinfos := last.WKilledKInfos
-	rangedKInfos := killedKinfos.GetWWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
-	lowerRightKInfos := rangedKInfos.GetWLeftLowerRight(s.AllowRightUpPercent)
-	tempKInfos := lowerRightKInfos.GetWSumWidthLargeThan(s.SumWidthMin)
+	killedKinfos := last.KilledKDatas
+	rangedKInfos := killedKinfos.GetWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
+	lowerRightKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
+	tempKInfos := lowerRightKInfos.GetSumWidthLargeThan(s.SumWidthMin)
 
 	if tempKInfos.Length() != 0 { // canBuy
 		s.lowerHighTimes = 0
@@ -224,17 +230,18 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine, repeater Repeater) {
 			quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
 
 			//設定 Tag資訊
-			tempKInfo := tempKInfos.GetWSumLoseMin()
-			tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.HighLoseLeftIndex, tempKInfo.HighLoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
+			tempKInfo := tempKInfos.GetSumLoseMin()
+			tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.LoseLeftIndex, tempKInfo.LoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
 
 			//執行購買
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
-				Symbol:   kline.Symbol,
-				Market:   market,
-				Side:     types.SideTypeBuy,
-				Type:     types.OrderTypeMarket,
-				Quantity: quantity,
-				Tag:      tag,
+				Symbol:           kline.Symbol,
+				Market:           market,
+				Side:             types.SideTypeBuy,
+				Type:             types.OrderTypeMarket,
+				Quantity:         quantity,
+				MarginSideEffect: types.SideEffectTypeMarginBuy,
+				Tag:              tag,
 			})
 			if err != nil {
 				log.WithError(err).Error("subit buy order error")

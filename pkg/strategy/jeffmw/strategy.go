@@ -83,6 +83,9 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 	var iw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.MovingAverage.Window}
 	jwmchart := standardIndicatorSet.JWMChart(iw)
 
+	jwchart := standardIndicatorSet.JWChart(iw)
+	jmchart := standardIndicatorSet.JMChart(iw)
+
 	var vmaIw = types.IntervalWindow{Interval: s.MovingAverage.Interval, Window: s.VmaWindow}
 	vma := standardIndicatorSet.VMA(vmaIw)
 
@@ -109,6 +112,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 	repeater := Repeater{
 		jwmchart:      jwmchart,
+		jwchart:       jwchart,
+		jmchart:       jmchart,
 		vma:           vma,
 		sma:           sma,
 		ctx:           ctx,
@@ -116,12 +121,14 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		session:       session,
 		market:        market}
 
-	s.WChartTactic.Init(s)
+	s.WChartTactic.Init(s, &repeater)
+	//s.MChartTactic.Init(s, &repeater)
 
 	// skip k-lines from other symbols
 	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
 
-		s.WChartTactic.OnKLineClosed(kline, repeater)
+		s.WChartTactic.OnKLineClosed(kline)
+		//s.MChartTactic.OnKLineClosed(kline)
 
 	}))
 
@@ -130,6 +137,8 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 
 type Repeater struct {
 	jwmchart      *indicator.JWMChart
+	jwchart       *indicator.JWChart
+	jmchart       *indicator.JMChart
 	vma           *indicator.VMA
 	sma           *indicator.SMA
 	ctx           context.Context
