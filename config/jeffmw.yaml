@@ -58,8 +58,8 @@ backtest:
   # startTime: "2017-09-01"
   # endTime: "2022-02-01"
 
-  startTime: "2023-02-01"
-  endTime: "2023-03-21"
+  startTime: "2023-02-05"
+  endTime: "2023-04-09T13:00:00"
 
   
   symbols:
@@ -100,33 +100,36 @@ exchangeStrategies:
     # winRightCount: 169
 
     
+    wChartTactic:
+      #amplificationPercent: 0.015 # 0.005~0.007
+      #changeRatio: 0 # //0.7~0.8
+      #increasePriceScale: 0 # 0.8
+      isCompoundOrder: false
+      limitLowerHightTimes: 4
 
-    #amplificationPercent: 0.015 # 0.005~0.007
-    #changeRatio: 0 # //0.7~0.8
-    #increasePriceScale: 0 # 0.8
-    isCompoundOrder: false
-    limitLowerHightTimes: 4
+  #filter
+      vmaWindow: 10
+      increaseVolScale: 1.3
+      gainVolPreDayScale: 0.7
 
-#filter
-    vmaWindow: 10
-    increaseVolScale: 1.3
-    gainVolPreDayScale: 0.7
+      #upperPowerRatio: 0.3  
+      upperShadowRatio: 0.65 # 0.9表示上影線小於0.1
+      winLeftCount: 51
+      winRightCount: 286
+      sumWidthMin: 0
+      winMaxMul: 50 # 5
 
-    #upperPowerRatio: 0.3  
-    upperShadowRatio: 0.65 # 0.9表示上影線小於0.1
-    winLeftCount: 51
-    winRightCount: 286
-    sumWidthMin: 0
-    winMaxMul: 50 # 5
+      allowRightUpPercent: 0.01
 
-    allowRightUpPercent: 0.01
+      #forwardWidth: 5
+      #highLoseLeftIndexMin: 300
 
-    #forwardWidth: 5
-    #highLoseLeftIndexMin: 300
+      
+      
+      overAmplificationPercent: 11 # 超過2.3%剔除=0.023
 
-    
-    
-    overAmplificationPercent: 11 # 超過2.3%剔除=0.023
+    mChartTactic:
+      increaseVolScale: 1.2
 
 persistence:
   redis:

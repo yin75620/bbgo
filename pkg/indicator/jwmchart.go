@@ -24,19 +24,6 @@ type KInfo struct {
 	MKilledKInfos     KInfos
 }
 
-type KData struct {
-	LoseLeftIndex  int              //低點往左數，第幾個位置低點比人高，第一根就是1
-	LoseRightIndex int              //低點往右數，第幾個位置低點比人高
-	LeftCuspPrice  fixedpoint.Value //中央尖點往左的反向最高點
-	RightCuspPrice fixedpoint.Value //中央尖點往右的反向最高點
-}
-
-type KBunch struct {
-	KInfo
-
-	KilledKInfos KInfos
-}
-
 type KInfos []KInfo
 
 func (ks *KInfos) Last() KInfo {
@@ -249,11 +236,6 @@ func (s *KInfos) GetMSumWidthLargeThan(widthMin int) KInfos {
 type JWMChart struct {
 	types.SeriesBase
 	types.IntervalWindow
-
-	// Setting 高點要贏左右各多少個K線才算合格
-	WinLeftCount        int
-	WinRightCount       int
-	AllowRightUpPercent float64
 
 	Values KInfos
 

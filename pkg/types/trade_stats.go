@@ -416,6 +416,10 @@ func (s *TradeStats) updateWinningRatio() {
 	} else {
 		s.WinningRatio = fixedpoint.NewFromFloat(float64(s.NumOfProfitTrade) / float64(s.NumOfLossTrade))
 	}
+
+	//key := (len(s.orderProfits))*2 + 1
+	//fmt.Println("last:", s.orderProfits[uint64(key)][0].TradedAt,
+	//	"s.NumOfLossTrade:", s.NumOfLossTrade, " s.NumOfProfitTrade:", s.NumOfProfitTrade, " s.WinningRatio:", s.WinningRatio)
 }
 
 // Output TradeStats without Profits and Losses
