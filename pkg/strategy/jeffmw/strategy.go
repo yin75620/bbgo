@@ -122,13 +122,13 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		market:        market}
 
 	s.WChartTactic.Init(s, &repeater)
-	//s.MChartTactic.Init(s, &repeater)
+	// s.MChartTactic.Init(s, &repeater)
 
 	// skip k-lines from other symbols
 	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
 
 		s.WChartTactic.OnKLineClosed(kline)
-		//s.MChartTactic.OnKLineClosed(kline)
+		// s.MChartTactic.OnKLineClosed(kline)
 
 	}))
 

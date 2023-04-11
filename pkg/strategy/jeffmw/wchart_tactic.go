@@ -198,9 +198,13 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 	}
 
 	killedKinfos := last.KilledKDatas
+	logrus.Debug(killedKinfos)
 	rangedKInfos := killedKinfos.GetWidthRange(s.WinLeftCount, s.WinRightCount, s.WinLeftCount*s.WinMaxMul, s.WinRightCount*s.WinMaxMul)
+	logrus.Debug(rangedKInfos)
 	lowerRightKInfos := rangedKInfos.GetLeftLowerRight(s.AllowRightUpPercent)
+	logrus.Debug(lowerRightKInfos)
 	tempKInfos := lowerRightKInfos.GetSumWidthLargeThan(s.SumWidthMin)
+	logrus.Debug(tempKInfos)
 
 	if tempKInfos.Length() != 0 { // canBuy
 		s.lowerHighTimes = 0
