@@ -257,7 +257,7 @@ func (inc *JWMChart) setWChart(kinfo *KInfo, currentHighPrice fixedpoint.Value) 
 	maxIndex := inc.Values.Length() - 1
 	jumpSize := 1
 	killedKInfos := KInfos{}
-	lowestPrice := fixedpoint.NewFromFloat(math.MaxFloat64)
+	lowestPrice := fixedpoint.PosInf
 	// 比較整個數據
 	for i := maxIndex; i >= 0; i = i - jumpSize {
 		v := &inc.Values[i]

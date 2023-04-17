@@ -1,7 +1,6 @@
 package indicator
 
 import (
-	"math"
 	"time"
 
 	"github.com/c9s/bbgo/pkg/fixedpoint"
@@ -32,7 +31,7 @@ func (inc *JWChart) setWChart(KData *KData, currentHighPrice fixedpoint.Value) {
 	maxIndex := inc.Values.Length() - 1
 	jumpSize := 1
 	killedKDatas := KDatas{}
-	lowestPrice := fixedpoint.NewFromFloat(math.MaxFloat64)
+	lowestPrice := fixedpoint.PosInf
 	// 比較整個數據
 	for i := maxIndex; i >= 0; i = i - jumpSize {
 		v := &inc.Values[i]
