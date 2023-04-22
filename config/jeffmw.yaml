@@ -58,8 +58,8 @@ backtest:
   # startTime: "2017-09-01"
   # endTime: "2022-02-01"
 
-  startTime: "2023-02-05"
-  endTime: "2023-04-09T13:00:00"
+  startTime: "2023-03-11"
+  endTime: "2023-04-17T14:00:00"
 
   
   symbols:
@@ -83,22 +83,11 @@ exchangeStrategies:
     movingAverage:
       interval: 5m
       window: 99
-      #rightWindow: 
     
     initialUsd: 100
     leverage: 1
-
-    # amplificationPercent: 0.0032
-    # changeRatio: 0.55
-    # increasePriceScale: 0.2
-    # increaseVolScale: 0.8
-    # limitLowerHightTimes: 1
-    # upperPowerRatio: 0.65
-    # upperShadowRatio: 0.07
-    # vmaWindow: 28
-    # winLeftCount: 5
-    # winRightCount: 169
-
+    enableWChart: false
+    enableMChart: true
     
     wChartTactic:
       #amplificationPercent: 0.015 # 0.005~0.007
@@ -119,7 +108,7 @@ exchangeStrategies:
       sumWidthMin: 0
       winMaxMul: 50 # 5
 
-      allowRightUpPercent: 0.01
+      allowRightUpPercent: 0
 
       #forwardWidth: 5
       #highLoseLeftIndexMin: 300
@@ -147,7 +136,7 @@ exchangeStrategies:
       sumWidthMin: 0
       winMaxMul: 50 # 5
 
-      allowLeftUpPercent: 0.01
+      allowLeftUpPercent: 0
 
       #forwardWidth: 5
       #highLoseLeftIndexMin: 300

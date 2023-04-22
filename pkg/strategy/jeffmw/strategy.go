@@ -34,6 +34,9 @@ type Strategy struct {
 	InitialUsd fixedpoint.Value `json:"initialUsd"` //if 0 => 100
 	Leverage   fixedpoint.Value `json:"leverage"`   // if 0 => 1
 
+	EnableMChart bool `json:"enableMChart`
+	EnableWChart bool `json:"enableWChart`
+
 	// start info
 	configUsdValue fixedpoint.Value
 
@@ -121,14 +124,21 @@ func (s *Strategy) Run(ctx context.Context, orderExecutor bbgo.OrderExecutor, se
 		session:       session,
 		market:        market}
 
-	s.WChartTactic.Init(s, &repeater)
-	// s.MChartTactic.Init(s, &repeater)
+	if s.EnableWChart {
+		s.WChartTactic.Init(s, &repeater)
+	}
+	if s.EnableMChart {
+		s.MChartTactic.Init(s, &repeater)
+	}
 
 	// skip k-lines from other symbols
 	session.MarketDataStream.OnKLineClosed(types.KLineWith(s.Symbol, s.MovingAverage.Interval, func(kline types.KLine) {
-
-		s.WChartTactic.OnKLineClosed(kline)
-		// s.MChartTactic.OnKLineClosed(kline)
+		if s.EnableWChart {
+			s.WChartTactic.OnKLineClosed(kline)
+		}
+		if s.EnableMChart {
+			s.MChartTactic.OnKLineClosed(kline)
+		}
 
 	}))
 
