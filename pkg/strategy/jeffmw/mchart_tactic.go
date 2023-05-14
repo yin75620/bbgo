@@ -33,8 +33,13 @@ type MChartTactic struct {
 
 	OverAmplificationPercent fixedpoint.Value `json:"overAmplificationPercent"` //小於
 
+	VolMoreCuspVolMul fixedpoint.Value `json:"volMoreCuspVolMul"` //大於
+
 	ForwardWidth     int `json:"ForwardWidth"`
 	LoseLeftIndexMin int `json:"LoseLeftIndexMin"`
+
+	//wave
+	WaveAmplificationPercentMin fixedpoint.Value `json:"waveAmplificationPercentMin"` //大於
 
 	// start info
 	configUsdValue    fixedpoint.Value
@@ -172,7 +177,8 @@ func (mct *MChartTactic) OnKLineClosed(kline types.KLine) {
 	killedKDatas := last.KilledKDatas
 	rangedKDatas := killedKDatas.GetWidthRange(mct.WinLeftCount, mct.WinRightCount, mct.WinLeftCount*mct.WinMaxMul, mct.WinRightCount*mct.WinMaxMul)
 	lowerRightKDatas := rangedKDatas.GetLeftHigherRight(mct.AllowLeftUpPercent)
-	tempKDatas := lowerRightKDatas.GetSumWidthLargeThan(mct.SumWidthMin)
+	sumWidthDatas := lowerRightKDatas.GetSumWidthLargeThan(mct.SumWidthMin)
+	tempKDatas := sumWidthDatas.GetHighAmplification(mct.WaveAmplificationPercentMin, false)
 
 	if tempKDatas.Length() != 0 { // canSell
 		mct.higherLowTimes = 0
@@ -196,15 +202,19 @@ func (mct *MChartTactic) OnKLineClosed(kline types.KLine) {
 				orderUSD = totalAvalableUSD
 			}
 
+			tempKInfo := tempKDatas.GetSumLoseMin()
+			if kline.Volume.Sub(tempKInfo.RightCuspKline.Volume.Mul(mct.VolMoreCuspVolMul)) < fixedpoint.Zero {
+				//成交量比尖點的成交量低，就捨棄
+				return
+			}
+
 			//計算要下單的數量
 			orderUSD = orderUSD.Mul(mct.leverage)
 
 			quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
 
 			//設定 Tag資訊
-			tempKInfo := tempKDatas.GetSumLoseMin()
 			tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.LoseLeftIndex, tempKInfo.LoseRightIndex, killedKDatas.Length(), rangedKDatas.Length())
-
 			//執行放空開倉
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
 				Symbol:           kline.Symbol,
@@ -242,6 +252,8 @@ func (mct *MChartTactic) PositionClose(kline types.KLine) {
 	orderExecutor := mct.repeater.orderExecutor
 	ctx := mct.repeater.ctx
 	market := mct.repeater.market
+	revenuePercent := getRevenue(mct.positionKline, kline).Div(mct.positionKline.Close)
+	tag := fmt.Sprintf("%v", revenuePercent)
 
 	//買回關倉
 	_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
@@ -251,6 +263,7 @@ func (mct *MChartTactic) PositionClose(kline types.KLine) {
 		Type:             types.OrderTypeMarket,
 		Quantity:         mct.lastOrderQuantity,
 		MarginSideEffect: types.SideEffectTypeAutoRepay,
+		Tag:              tag,
 	})
 	if err != nil {
 		log.WithError(err).Error("subit sell order error")

@@ -161,3 +161,7 @@ type Repeater struct {
 func (s *Strategy) InstanceID() string {
 	return fmt.Sprintf("%s-%s", ID, s.Symbol)
 }
+
+func getRevenue(sellPosition, buyPosition types.KLine) fixedpoint.Value {
+	return sellPosition.Close - buyPosition.Close
+}

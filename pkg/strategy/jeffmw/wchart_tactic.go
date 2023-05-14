@@ -33,6 +33,8 @@ type WChartTactic struct {
 
 	OverAmplificationPercent fixedpoint.Value `json:"overAmplificationPercent"` //小於
 
+	VolMoreCuspVolMul fixedpoint.Value `json:"volMoreCuspVolMul"` //大於
+
 	ForwardWidth     int `json:"ForwardWidth"`
 	LoseLeftIndexMin int `json:"LoseLeftIndexMin"`
 
@@ -77,6 +79,9 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 
 	last := jwchart.Last()
 
+	revenuePercent := getRevenue(kline, s.positionKline).Div(kline.Close)
+	tag := fmt.Sprintf("%v", revenuePercent)
+
 	// prepare function to sell position
 	SellFunc := func(kline types.KLine) {
 		_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
@@ -86,10 +91,12 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 			Type:             types.OrderTypeMarket,
 			Quantity:         s.lastOrderQuantity,
 			MarginSideEffect: types.SideEffectTypeAutoRepay,
+			Tag:              tag,
 		})
 		if err != nil {
 			log.WithError(err).Error("subit sell order error")
 		}
+
 		s.positionKline = types.KLine{}
 		s.lastOrderQuantity = fixedpoint.Zero
 		s.klineLow = fixedpoint.Zero
@@ -228,15 +235,19 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 				orderUSD = totalAvalableUSD
 			}
 
+			tempKInfo := tempKInfos.GetSumLoseMin()
+			if kline.Volume.Sub(tempKInfo.RightCuspKline.Volume.Mul(s.VolMoreCuspVolMul)) < fixedpoint.Zero {
+				//成交量比尖點的成交量低，就捨棄
+				return
+			}
+
 			//計算要下單的數量
 			orderUSD = orderUSD.Mul(s.leverage)
 
 			quantity := orderUSD.Div(kline.Close) //fixedpoint.NewFromFloat(0.01)
 
 			//設定 Tag資訊
-			tempKInfo := tempKInfos.GetSumLoseMin()
 			tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.LoseLeftIndex, tempKInfo.LoseRightIndex, killedKinfos.Length(), rangedKInfos.Length())
-
 			//執行購買
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
 				Symbol:           kline.Symbol,

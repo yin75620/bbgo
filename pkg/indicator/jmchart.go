@@ -32,6 +32,7 @@ func (inc *JMChart) setMChart(KData *KData, currentLowPrice fixedpoint.Value) {
 	jumpSize := 1
 	killedKDatas := KDatas{}
 	highestPrice := fixedpoint.Zero
+	highestKline := types.KLine{}
 	// 比較整個數據
 	for i := maxIndex; i >= 0; i = i - jumpSize {
 		v := &inc.Values[i]
@@ -39,6 +40,7 @@ func (inc *JMChart) setMChart(KData *KData, currentLowPrice fixedpoint.Value) {
 		// 先計算是否更新最大值
 		if v.K.High > highestPrice {
 			highestPrice = v.K.High
+			highestKline = v.K
 		}
 
 		// 輸贏index處理
@@ -49,7 +51,7 @@ func (inc *JMChart) setMChart(KData *KData, currentLowPrice fixedpoint.Value) {
 
 		//把已經擊倒的K線數量設定在此處
 		v.LoseRightIndex = KData.LoseLeftIndex + 1
-		v.RightCuspPrice = highestPrice
+		v.RightCuspKline = highestKline
 		killedKDatas = append(killedKDatas, *v)
 
 		jumpSize = v.LoseLeftIndex
@@ -60,7 +62,7 @@ func (inc *JMChart) setMChart(KData *KData, currentLowPrice fixedpoint.Value) {
 		}
 	}
 
-	KData.LeftCuspPrice = highestPrice
+	KData.LeftCuspKline = highestKline
 	KData.KilledKDatas = killedKDatas
 }
 

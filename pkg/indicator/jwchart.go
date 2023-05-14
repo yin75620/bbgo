@@ -32,6 +32,7 @@ func (inc *JWChart) setWChart(KData *KData, currentHighPrice fixedpoint.Value) {
 	jumpSize := 1
 	killedKDatas := KDatas{}
 	lowestPrice := fixedpoint.PosInf
+	lowestKline := types.KLine{}
 	// 比較整個數據
 	for i := maxIndex; i >= 0; i = i - jumpSize {
 		v := &inc.Values[i]
@@ -39,6 +40,7 @@ func (inc *JWChart) setWChart(KData *KData, currentHighPrice fixedpoint.Value) {
 		// 先計算是否更新最小值
 		if v.K.Low < lowestPrice {
 			lowestPrice = v.K.Low
+			lowestKline = v.K
 		}
 
 		// 輸贏index處理
@@ -49,7 +51,7 @@ func (inc *JWChart) setWChart(KData *KData, currentHighPrice fixedpoint.Value) {
 
 		//把已經擊倒的K線數量設定在此處
 		v.LoseRightIndex = KData.LoseLeftIndex + 1
-		v.RightCuspPrice = lowestPrice
+		v.RightCuspKline = lowestKline
 		killedKDatas = append(killedKDatas, *v)
 
 		jumpSize = v.LoseLeftIndex
@@ -60,7 +62,7 @@ func (inc *JWChart) setWChart(KData *KData, currentHighPrice fixedpoint.Value) {
 		}
 	}
 
-	KData.LeftCuspPrice = lowestPrice
+	KData.LeftCuspKline = lowestKline
 	KData.KilledKDatas = killedKDatas
 }
 
