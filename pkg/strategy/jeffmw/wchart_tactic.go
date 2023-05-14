@@ -68,7 +68,6 @@ func (wct *WChartTactic) Init(s *Strategy, repeater *Repeater) {
 
 func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 	repeater := s.repeater
-	jwmchart := repeater.jwmchart
 	jwchart := repeater.jwchart
 	vma := repeater.vma
 	sma := repeater.sma
@@ -141,15 +140,15 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 	}
 
 	//成交量比前一根高出指定比例
-	if kline.Volume.Div(jwmchart.Index(1).K.Volume).Sub(s.GainVolPreDayScale) < fixedpoint.Zero {
+	if kline.Volume.Div(jwchart.Index(1).K.Volume).Sub(s.GainVolPreDayScale) < fixedpoint.Zero {
 		logrus.Debug("未達成-成交量比前一根高出指定比例")
 		return
 	}
 
 	//找到輸掉的那一根Ｋ線，再往前N跟，如果有出現尖頭，也不交易
 	if s.LoseLeftIndexMin != 0 {
-		leftSideKinfos := jwmchart.IndexWidth(last.LoseLeftIndex, s.ForwardWidth)
-		topKinfos := leftSideKinfos.GetWLoseLeftIndexLargerThan(s.LoseLeftIndexMin)
+		leftSideKinfos := jwchart.IndexWidth(last.LoseLeftIndex, s.ForwardWidth)
+		topKinfos := leftSideKinfos.GetLoseLeftIndexLargerThan(s.LoseLeftIndexMin)
 
 		if len(topKinfos) != 0 {
 			logrus.Debug("未達成-找到輸掉的那一根Ｋ線")
