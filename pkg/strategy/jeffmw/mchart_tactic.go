@@ -164,7 +164,7 @@ func (mct *MChartTactic) OnKLineClosed(kline types.KLine) {
 
 	// 向下力道要超過特定比例
 	if kline.GetLowerPowerRatio().Sub(mct.LowerPowerRatio) < fixedpoint.Zero {
-		logrus.Debug("未達成-向上力道要超過特定比例")
+		logrus.Debug("未達成-向下力道要超過特定比例")
 		return
 	}
 
