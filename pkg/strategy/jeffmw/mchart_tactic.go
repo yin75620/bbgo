@@ -2,6 +2,7 @@ package jeffmw
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/c9s/bbgo/pkg/fixedpoint"
 	"github.com/c9s/bbgo/pkg/types"
@@ -97,12 +98,20 @@ func (mct *MChartTactic) OnKLineClosed(kline types.KLine) {
 	}
 
 	// Buy Check
-
+	res, _ := time.Parse(time.RFC3339, "2021-12-04T04:50:00Z")
+	if kline.StartTime.Time().UTC() == res {
+		fmt.Println("DEBUG")
+	}
 	// 軌跡波動量超越均量特定比例
 	//spoorRate := kline.GetOnePercentSpoorVol().Div(fixedpoint.NewFromFloat(spoorVol.Last()))
 	//if spoorRate.Sub(fixedpoint.NewFromFloat(1.08)) > fixedpoint.Zero {
 	//	return
 	//}
+
+	// 收漲 Skip
+	if kline.GetChange() > 0 {
+		return
+	}
 
 	//成交量的/超越均量指定比例
 	if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(mct.IncreaseVolScale) < fixedpoint.Zero {
@@ -215,11 +224,11 @@ func (mct *MChartTactic) OnKLineClosed(kline types.KLine) {
 
 			//設定 Tag資訊
 			tag := fmt.Sprintf("%d-%d-%d-%d", tempKInfo.LoseLeftIndex, tempKInfo.LoseRightIndex, killedKDatas.Length(), rangedKDatas.Length())
-			//執行放空開倉
+			//執行開倉
 			_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
 				Symbol:           kline.Symbol,
 				Market:           market,
-				Side:             types.SideTypeSell,
+				Side:             types.SideTypeBuy,
 				Type:             types.OrderTypeMarket,
 				Quantity:         quantity,
 				MarginSideEffect: types.SideEffectTypeMarginBuy,
@@ -259,7 +268,7 @@ func (mct *MChartTactic) PositionClose(kline types.KLine) {
 	_, err := orderExecutor.SubmitOrders(ctx, types.SubmitOrder{
 		Symbol:           kline.Symbol,
 		Market:           market,
-		Side:             types.SideTypeBuy,
+		Side:             types.SideTypeSell,
 		Type:             types.OrderTypeMarket,
 		Quantity:         mct.lastOrderQuantity,
 		MarginSideEffect: types.SideEffectTypeAutoRepay,

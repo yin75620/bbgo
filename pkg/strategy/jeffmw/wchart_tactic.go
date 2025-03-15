@@ -133,6 +133,11 @@ func (s *WChartTactic) OnKLineClosed(kline types.KLine) {
 	//	return
 	//}
 
+	// 收跌 Skip
+	if kline.GetChange() < 0 {
+		return
+	}
+
 	//成交量的/超越均量指定比例
 	if kline.Volume.Div(fixedpoint.NewFromFloat(vma.Index(1))).Sub(s.IncreaseVolScale) < fixedpoint.Zero {
 		logrus.Debug("未達成-成交量的/超越均量指定比例")

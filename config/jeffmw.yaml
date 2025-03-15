@@ -46,8 +46,8 @@ backtest:
   # startTime: "2021-01-01"
   # endTime: "2021-12-31"
 
-  # startTime: "2022-01-01"
-  # endTime: "2022-12-31"
+  # startTime: "2017-08-14"
+  # endTime: "2019-12-31"
 
   # startTime: "2017-12-20"
   # endTime: "2020-12-20"
@@ -55,8 +55,8 @@ backtest:
   # startTime: "2020-12-21"
   # endTime: "2023-02-23"
 
-  startTime: "2022-01-01"
-  endTime: "2022-01-31"
+  startTime: "2010-01-01"
+  endTime: "2023-12-14"
 
   # startTime: "2023-01-11"
   # endTime: "2023-04-17T14:00:00"
@@ -67,8 +67,8 @@ backtest:
   sessions: [binance]
   accounts:
     binance:
-      makerFeeRate: 0.00%
-      takerFeeRate: 0.00%
+      makerFeeRate: 0.10%
+      takerFeeRate: 0.10%
       balances:
         BTC: 10.0
         ETH: 0.0
@@ -97,19 +97,18 @@ exchangeStrategies:
       limitLowerHightTimes: 4
 
   #filter
-      # vmaWindow: 10
-      # increaseVolScale: 1.3
-      # gainVolPreDayScale: 0.7
+      vmaWindow: 10
+      increaseVolScale: 1.3
+      gainVolPreDayScale: 0.7
 
       #upperPowerRatio: 0.3  
-      # upperShadowRatio: 0.65 # 0.9表示上影線小於0.1
+      upperShadowRatio: 0.65 # 0.9表示上影線小於0.1
       winLeftCount: 51
       winRightCount: 286
       sumWidthMin: 0
       winMaxMul: 50 # 5
 
-      volMoreCuspVolMul: 1
-      allowRightUpPercent: 0
+      allowRightUpPercent: 0.01
 
       #forwardWidth: 5
       #highLoseLeftIndexMin: 300
@@ -119,31 +118,24 @@ exchangeStrategies:
       overAmplificationPercent: 11 # 超過2.3%剔除=0.023
 
     mChartTactic:
-      #amplificationPercent: 0.005 # 0.005~0.007
-      #changeRatio: 0 # //0.7~0.8
-      #increasePriceScale: 0 # 0.8
-      isCompoundOrder: false
-      limitLowerHightTimes: 1
-
-  #filter
       vmaWindow: 10
-      #increaseVolScale: 1.3
-      #gainVolPreDayScale: 0.7
+      increaseVolScale: 1.3
+      gainVolPreDayScale: 0.7
 
-      #lowerPowerRatio: 0.3  
-      #lowerShadowRatio: 0.65 # 0.9表示上影線小於0.1
-      winLeftCount: 10
-      winRightCount: 14
-      sumWidthMin: 16
+      #upperPowerRatio: 0.3  
+      upperShadowRatio: 0.65 # 0.9表示上影線小於0.1
+      winLeftCount: 51
+      winRightCount: 286
+      sumWidthMin: 0
       winMaxMul: 50 # 5
 
-
-      waveAmplificationPercentMin: 0 #0.065
-      volMoreCuspVolMul: 1
-      allowLeftUpPercent: 0.5
+      allowRightUpPercent: 0.01
 
       #forwardWidth: 5
       #highLoseLeftIndexMin: 300
+
+      
+      
       overAmplificationPercent: 11 # 超過2.3%剔除=0.023
       
 
